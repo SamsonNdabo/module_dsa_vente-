@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests\Dsa;
 
-use App\Models\ClientDsa;
+use App\Models\Client;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -15,42 +15,66 @@ class StoreClientDsaRequest extends FormRequest
 
     public function rules(): array
     {
-        $creerPos = (bool) $this->boolean('creer_client_pos');
+        $typeClient = $this->input('type_client', 'PERSONNE_PHYSIQUE');
+        $estEntreprise = $typeClient === 'ENTREPRISE';
+        $estPersonne = $typeClient === 'PERSONNE_PHYSIQUE';
 
         return [
-            'agent_dsa_id'           => 'nullable|integer|exists:agents_dsa,id',
-            'zone_id'                => 'nullable|integer|exists:zones,id',
-            'nom_complet'            => 'required|string|max:255',
-            'sexe'                   => ['required', Rule::in(ClientDsa::SEXES)],
-            'date_naissance'         => 'required|date|before:today',
-            'telephone'              => 'required|string|max:30',
-            'email'                  => 'nullable|email|max:255',
-            'adresse'                => 'required|string|max:255',
-            'profession'             => 'required|string|max:150',
-            'activite_economique'    => 'required|string|max:150',
-            'piece_identite_type'    => 'nullable|string|max:50',
-            'piece_identite_numero'  => 'nullable|string|max:100',
-            'metadata'               => 'nullable|array',
-            'local_uuid'             => 'nullable|uuid',
+            // ─── Rattachement
+            'agent_dsa_id' => 'nullable|integer|exists:agents_dsa,id',
+            'zone_id'      => 'nullable|integer|exists:zones,id',
 
-            // Cas 1 : lien POS existant
-            'client_id'              => 'nullable|integer|exists:clients,id',
+            // ─── Type de client
+            'type_client'  => ['required', Rule::in(array_keys(Client::TYPES_CLIENT))],
 
-            // Cas 2b : création POS
-            'creer_client_pos'       => 'sometimes|boolean',
+            // ─── Identité (commun)
+            'nom_complet'  => 'required|string|max:255',
+            'telephone'    => 'required|string|max:30',
+            'email'        => [
+                'nullable', 'email', 'max:255',
+                Rule::unique('clients', 'email')->whereNull('deleted_at'),
+            ],
+            'adresse'      => 'required|string|max:255',
+
+            // ─── Personne physique
+            'sexe'                  => [Rule::requiredIf($estPersonne), 'nullable', Rule::in(Client::SEXES ?? ['M', 'F'])],
+            'date_naissance'        => [Rule::requiredIf($estPersonne), 'nullable', 'date', 'before:today'],
+            'profession'            => [Rule::requiredIf($estPersonne), 'nullable', 'string', 'max:150'],
+            'activite_economique'   => [Rule::requiredIf($estPersonne), 'nullable', 'string', 'max:150'],
+
+            // ─── Entreprise
+            'raison_sociale'        => [Rule::requiredIf($estEntreprise), 'nullable', 'string', 'max:200'],
+            'numero_rc'             => [Rule::requiredIf($estEntreprise), 'nullable', 'string', 'max:50'],
+            'numero_impot'          => 'nullable|string|max:50',
+            'representant_legal'    => [Rule::requiredIf($estEntreprise), 'nullable', 'string', 'max:150'],
+
+            // ─── Pièce d'identité (commun)
+            'piece_identite_type'   => 'nullable|string|max:50',
+            'piece_identite_numero' => 'nullable|string|max:100',
+
+            // ─── Divers
+            'metadata'              => 'nullable|array',
+            'local_uuid'            => 'nullable|uuid',
         ];
     }
 
     public function messages(): array
     {
         return [
+            'type_client.required'         => 'Le type de client est obligatoire.',
+            'type_client.in'               => 'Le type de client est invalide.',
             'nom_complet.required'         => 'Le nom complet est obligatoire.',
             'telephone.required'           => 'Le téléphone est obligatoire.',
-            'date_naissance.required'      => 'La date de naissance est obligatoire.',
+            'email.unique'                 => 'Cet email existe déjà.',
+            'adresse.required'             => 'L\'adresse est obligatoire.',
+            'sexe.required'                => 'Le sexe est obligatoire pour une personne physique.',
+            'date_naissance.required'      => 'La date de naissance est obligatoire pour une personne physique.',
             'date_naissance.before'        => 'La date de naissance doit être passée.',
-            'profession.required'          => 'La profession est obligatoire.',
-            'activite_economique.required' => "L'activité économique est obligatoire.",
-            'client_id.exists'             => 'Le client POS sélectionné est introuvable.',
+            'profession.required'          => 'La profession est obligatoire pour une personne physique.',
+            'activite_economique.required' => "L'activité économique est obligatoire pour une personne physique.",
+            'raison_sociale.required'      => 'La raison sociale est obligatoire pour une entreprise.',
+            'numero_rc.required'           => 'Le numéro RC est obligatoire pour une entreprise.',
+            'representant_legal.required'  => 'Le représentant légal est obligatoire pour une entreprise.',
             'local_uuid.uuid'              => 'L\'identifiant local doit être un UUID valide.',
         ];
     }
@@ -58,11 +82,10 @@ class StoreClientDsaRequest extends FormRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($v) {
-            // Si pas de client POS lié ET pas de création POS → client DSA seul (OK)
-            // Si client_id fourni ET creer_client_pos → conflit
-            if ($this->filled('client_id') && $this->boolean('creer_client_pos')) {
-                $v->errors()->add('client_id', 'Impossible de lier un client POS existant ET d\'en créer un nouveau.');
+            if ($this->boolean('type_client') === false) {
+                return;
             }
+            // Pas de conflit possible : plus de client_id ni creer_client_pos
         });
     }
 }

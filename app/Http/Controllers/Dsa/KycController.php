@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Dsa;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Dsa\Concerns\ExigePermission;
-use App\Models\ClientDsa;
+use App\Models\Client;
 use App\Models\Demande;
 use App\Models\KycPiece;
 use App\Services\KycService;
@@ -28,7 +28,7 @@ class KycController extends Controller
     {
         $this->exiger($request, 'dsa.kyc.soumettre');
 
-        $client = ClientDsa::findOrFail($id);
+        $client = Client::findOrFail($id);
         $data   = $request->validate(['local_uuid' => 'nullable|uuid']);
 
         $demande = $this->kyc->ouvrirDossier($client, $request->user(), $request->user()->agentDsa, $data['local_uuid'] ?? null);
@@ -46,7 +46,7 @@ class KycController extends Controller
     {
         $this->exiger($request, 'dsa.clients.view');
 
-        $client = ClientDsa::findOrFail($id);
+        $client = Client::findOrFail($id);
 
         $data = $request->validate([
             'partenaire_id'  => 'required|integer|exists:partenaires,id',

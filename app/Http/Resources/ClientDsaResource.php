@@ -11,38 +11,54 @@ class ClientDsaResource extends JsonResource
     {
         return [
             'id'                     => $this->id,
-            'client_id'              => $this->client_id,
-            'agent_dsa_id'           => $this->agent_dsa_id,
-            'zone_id'                => $this->zone_id,
             'code_client'            => $this->code_client,
+            'type_client'            => $this->type_client,
+            'type_client_label'      => $this->type_client_label,
+
+            // ─── Identité
             'nom_complet'            => $this->nom_complet,
             'sexe'                   => $this->sexe,
             'sexe_label'             => $this->sexe_label,
             'date_naissance'         => $this->date_naissance?->toDateString(),
+
+            // ─── Contact
             'telephone'              => $this->telephone,
             'telephone_normalise'    => $this->telephone_normalise,
             'email'                  => $this->email,
             'adresse'                => $this->adresse,
+
+            // ─── Personne physique
             'profession'             => $this->profession,
             'activite_economique'    => $this->activite_economique,
+
+            // ─── Entreprise
+            'raison_sociale'         => $this->raison_sociale,
+            'numero_rc'              => $this->numero_rc,
+            'numero_impot'           => $this->numero_impot,
+            'representant_legal'     => $this->representant_legal,
+
+            // ─── Identité légale
             'piece_identite_type'    => $this->piece_identite_type,
             'piece_identite_numero'  => $this->piece_identite_numero,
+
+            // ─── Statuts
             'kyc_statut'             => $this->kyc_statut,
             'kyc_statut_label'       => $this->kyc_statut_label,
             'statut'                 => $this->statut,
             'statut_label'           => $this->statut_label,
+            'categorie_client'       => $this->categorie_client,
+            'categorie_label'        => $this->categorie_label,
             'source'                 => $this->source,
+
+            // ─── Rattachement
+            'agent_dsa_id'           => $this->agent_dsa_id,
+            'zone_id'                => $this->zone_id,
+
+            // ─── Divers
             'local_uuid'             => $this->local_uuid,
             'metadata'               => $this->metadata,
 
-            'client_pos' => $this->whenLoaded('clientPos', fn () => $this->clientPos ? [
-                'id'         => $this->clientPos->id,
-                'code'       => $this->clientPos->code_client,
-                'nom_complet'=> $this->clientPos->nom_complet,
-                'email'      => $this->clientPos->email,
-                'telephone'  => $this->clientPos->telephone,
-            ] : null),
-
+            // ─── Relations
             'agent_dsa' => $this->whenLoaded('agentDsa', fn () => $this->agentDsa ? [
                 'id'         => $this->agentDsa->id,
                 'code'       => $this->agentDsa->code,

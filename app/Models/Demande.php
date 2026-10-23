@@ -18,7 +18,7 @@ class Demande extends Model
     protected $fillable = [
         'reference',
         'type',
-        'client_dsa_id',        // ← CORRIGÉ
+        'client_id',        // ← CORRIGÉ
         'agent_dsa_id',
         'partenaire_id',
         'produit_dsa_id',
@@ -40,12 +40,11 @@ class Demande extends Model
 
     /* ---------------- Relations ---------------- */
 
-    public function client(): BelongsTo
+    // Relation client
+    public function client()
     {
-        // ← ClientDsa (pas Client POS)
-        return $this->belongsTo(ClientDsa::class, 'client_dsa_id');
+        return $this->belongsTo(Client::class, 'client_id');   // ← était ClientDsa
     }
-
     public function agent(): BelongsTo
     {
         return $this->belongsTo(AgentDsa::class, 'agent_dsa_id');

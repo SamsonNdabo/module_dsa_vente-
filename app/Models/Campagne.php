@@ -148,7 +148,7 @@ class Campagne extends Model
      */
     public function clientsDsa()
     {
-        return \App\Models\ClientDsa::query()
+        return \App\Models\Client::query()
             ->whereIn('agent_dsa_id', $this->affectations()
                 ->whereNull('date_fin')
                 ->pluck('agent_dsa_id'))

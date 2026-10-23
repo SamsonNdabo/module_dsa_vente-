@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Dsa;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Dsa\Concerns\ExigePermission;
-use App\Models\ClientDsa;
+use App\Models\Client;
 use App\Models\ConsentementClient;
 use App\Models\Demande;
 use App\Services\ConsentementService;
@@ -20,9 +20,12 @@ class ConsentementController extends Controller
     {
         $this->exiger($request, 'dsa.clients.view');
 
+        // Vérifier que le client existe
+        $client = Client::findOrFail($clientId);
+
         return response()->json([
             'success' => true,
-            'data'    => ConsentementClient::where('client_dsa_id', $clientId)   // ← CORRIGÉ
+            'data'    => ConsentementClient::where('client_id', $client->id)
                 ->orderByDesc('date_consentement')
                 ->get(),
         ]);
@@ -32,7 +35,7 @@ class ConsentementController extends Controller
     {
         $this->exiger($request, 'dsa.kyc.soumettre');
 
-        $client = ClientDsa::findOrFail($clientId);   // ← CORRIGÉ
+        $client = Client::findOrFail($clientId);
 
         $data = $request->validate([
             'type_consentement'  => 'required|in:' . implode(',', ConsentementClient::TYPES),
@@ -40,6 +43,12 @@ class ConsentementController extends Controller
             'texte_consentement' => 'required|string',
             'consenti'           => 'required|boolean',
             'demande_id'         => 'nullable|integer|exists:demandes,id',
+        ]);
+
+        \Log::info('[CONSENTEMENT] store', [
+            'clientId_recu' => $clientId,
+            'client_trouve' => $client ? $client->id : null,
+            'payload' => $request->all(),
         ]);
 
         $demande = ! empty($data['demande_id']) ? Demande::find($data['demande_id']) : null;

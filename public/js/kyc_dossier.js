@@ -291,12 +291,12 @@
     // EXIGENCES
     // ─────────────────────────────────────────────────────────
     async function loadExigences() {
-        if (!demande?.client_dsa_id) return;
+        if (!demande?.client_id) return;
 
         try {
             let partenaireId = demande.partenaire_id;
             if (!partenaireId) {
-                const listRes = await API.get(`/dsa/demandes?type=OUVERTURE_COMPTE&client_dsa_id=${demande.client_dsa_id}`);
+                const listRes = await API.get(`/dsa/demandes?type=OUVERTURE_COMPTE&client_id=${demande.client_id}`);
                 if (listRes.ok && listRes.data?.data?.data?.length) {
                     partenaireId = listRes.data.data.data[0].partenaire_id;
                 }
@@ -306,7 +306,7 @@
                 return;
             }
 
-            const res = await API.get(`/dsa/clients/${demande.client_dsa_id}/kyc/exigences?partenaire_id=${partenaireId}`);
+            const res = await API.get(`/dsa/clients/${demande.client_id}/kyc/exigences?partenaire_id=${partenaireId}`);
             if (!res.ok) return;
 
             const ev = res.data.evaluation;
@@ -335,10 +335,10 @@
     // CONSENTEMENTS
     // ─────────────────────────────────────────────────────────
     async function loadConsentements() {
-        if (!demande?.client_dsa_id) return;
+        if (!demande?.client_id) return;
 
         try {
-            const res = await API.get(`/dsa/clients/${demande.client_dsa_id}/consentements`);
+            const res = await API.get(`/dsa/clients/${demande.client_id}/consentements`);
             if (!res.ok) return;
 
             consentements = res.data.data || [];
@@ -518,8 +518,8 @@
         // ── Consentement ──────────────────────────────────────────
         $('#consentement-form')?.addEventListener('submit', async e => {
             e.preventDefault();
-            if (!demande?.client_dsa_id) {
-                safeToast('danger', 'Client DSA introuvable');
+            if (!demande?.client_id) {
+                safeToast('danger', 'Client introuvable dans cette demande');
                 return;
             }
             const btn = $('#btn-save-consentement');
@@ -533,7 +533,7 @@
             };
 
             setLoading(btn, true);
-            const res = await API.post(`/dsa/clients/${demande.client_dsa_id}/consentements`, payload);
+            const res = await API.post(`/dsa/clients/${demande.client_id}/consentements`, payload);
             setLoading(btn, false);
 
             if (res.ok) {

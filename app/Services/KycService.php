@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Models\AgentDsa;
-use App\Models\ClientDsa;
+use App\Models\Client;         // ← CHANGÉ
 use App\Models\Demande;
 use App\Models\KycDossier;
 use App\Models\KycPiece;
@@ -22,16 +22,13 @@ class KycService
         private RegleKycService $regles
     ) {}
 
-    /**
-     * Ouvre (ou retrouve) le dossier KYC "vivant" du client DSA.
-     */
-    public function ouvrirDossier(ClientDsa $client, Utilisateur $auteur, ?AgentDsa $agent, ?string $localUuid = null): Demande
+    public function ouvrirDossier(Client $client, Utilisateur $auteur, ?AgentDsa $agent, ?string $localUuid = null): Demande
     {
         return DB::transaction(function () use ($client, $auteur, $agent, $localUuid) {
-            ClientDsa::lockForUpdate()->findOrFail($client->id);
+            Client::lockForUpdate()->findOrFail($client->id);
 
             $actif = Demande::where('type', 'KYC')
-                ->where('client_dsa_id', $client->id)
+                ->where('client_id', $client->id)            // ← CHANGÉ
                 ->where('statut', '!=', 'REJETE')
                 ->first();
 
@@ -40,16 +37,15 @@ class KycService
             }
 
             $demande = $this->workflow->creer('KYC', [
-                'client_dsa_id' => $client->id,
-                'agent_dsa_id'  => $agent?->id ?? $client->agent_dsa_id,
-                'local_uuid'    => $localUuid,
+                'client_id'    => $client->id,               // ← CHANGÉ
+                'agent_dsa_id' => $agent?->id ?? $client->agent_dsa_id,
+                'local_uuid'   => $localUuid,
             ], $auteur);
 
-            // ⚠️ CORRECTION : client_dsa_id OBLIGATOIRE
             KycDossier::create([
-                'client_dsa_id' => $client->id,           // ← LA LIGNE MANQUANTE
-                'demande_id'    => $demande->id,
-                'statut'        => $demande->statut,
+                'client_id'  => $client->id,                 // ← CHANGÉ
+                'demande_id' => $demande->id,
+                'statut'     => $demande->statut,
             ]);
 
             $client->update(['kyc_statut' => $demande->statut]);
@@ -62,7 +58,7 @@ class KycService
     {
         $this->exigerEtat($demande, self::ETATS_AJOUT_PIECE);
 
-        $chemin = $fichier->store("dsa/kyc/{$demande->client_dsa_id}", 'local');
+        $chemin = $fichier->store("dsa/kyc/{$demande->client_id}", 'local');   // ← CHANGÉ
 
         return $demande->kycDossier->pieces()->create([
             'type_document'   => $d['type_document'],
@@ -80,7 +76,7 @@ class KycService
         $this->exigerEtat($demande, self::ETATS_SIGNATURE);
 
         $demande->kycDossier->update([
-            'signature_ref' => $fichier->store("dsa/kyc/{$demande->client_dsa_id}/signature", 'local'),
+            'signature_ref' => $fichier->store("dsa/kyc/{$demande->client_id}/signature", 'local'),   // ← CHANGÉ
         ]);
 
         return $demande->kycDossier;
@@ -127,7 +123,7 @@ class KycService
             $acteur->logAudit('DSA_KYC_PIECE_' . $statut, null, ['piece_id' => $piece->id, 'motif' => $motif]);
 
             if ($statut === 'VALIDE') {
-                $this->regles->avancerDossiersEnAttente($piece->dossier->client_dsa_id);
+                $this->regles->avancerDossiersEnAttente($piece->dossier->client_id);   // ← CHANGÉ
             }
 
             return $piece;

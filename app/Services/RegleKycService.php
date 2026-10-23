@@ -2,22 +2,17 @@
 
 namespace App\Services;
 
-use App\Models\ClientDsa;         // ← CORRIGÉ : ClientDsa (pas Client POS)
+use App\Models\Client;              // ← CHANGÉ
 use App\Models\Demande;
 use App\Models\KycDossier;
 use App\Models\KycPiece;
 use App\Models\RegleKycPartenaire;
 use Illuminate\Support\Collection;
 
-/** Évalue un client DSA contre les exigences KYC fixées par le PARTENAIRE. */
 class RegleKycService
 {
     public function __construct(private WorkflowService $workflow) {}
 
-    /**
-     * Règles actives applicables : produit + partenaire (tous produits).
-     * Pour un même type_document, la règle du produit prime sur celle du partenaire.
-     */
     public function reglesPour(int $partenaireId, ?int $produitId): Collection
     {
         return RegleKycPartenaire::where('partenaire_id', $partenaireId)
@@ -34,10 +29,7 @@ class RegleKycService
             ->values();
     }
 
-    /**
-     * @return array{sans_regle: bool, complet: bool, valide: bool, manquantes: array, expirees: array, a_valider: array}
-     */
-    public function evaluer(ClientDsa $client, int $partenaireId, ?int $produitId): array   // ← CORRIGÉ
+    public function evaluer(Client $client, int $partenaireId, ?int $produitId): array   // ← CHANGÉ
     {
         $regles = $this->reglesPour($partenaireId, $produitId);
         $identite = config('dsa_workflow.kyc_defaut.pieces_identite');
@@ -53,13 +45,11 @@ class RegleKycService
             );
         }
 
-        // ← CORRIGÉ : client_dsa_id au lieu de client_id
-        $pieces = KycPiece::whereHas('dossier', fn ($q) => $q->where('client_dsa_id', $client->id)->where('statut', '!=', 'REJETE'))
+        $pieces = KycPiece::whereHas('dossier', fn ($q) => $q->where('client_id', $client->id)->where('statut', '!=', 'REJETE'))   // ← CHANGÉ
             ->where('statut', '!=', 'REJETE')
             ->get();
 
-        // ← CORRIGÉ : client_dsa_id
-        $aSignature = KycDossier::where('client_dsa_id', $client->id)
+        $aSignature = KycDossier::where('client_id', $client->id)   // ← CHANGÉ
             ->where('statut', '!=', 'REJETE')->whereNotNull('signature_ref')->exists();
 
         $manquantes = $expirees = $aValider = [];
@@ -107,7 +97,6 @@ class RegleKycService
         ];
     }
 
-    /** Fait avancer DOSSIER_SOUMIS → KYC_VALIDE si le KYC du client est validé ET les exigences remplies. */
     public function avancerSiPret(Demande $compte): void
     {
         if ($compte->statut !== 'DOSSIER_SOUMIS' || $compte->client?->kyc_statut !== 'VALIDE') {
@@ -121,10 +110,10 @@ class RegleKycService
         }
     }
 
-    public function avancerDossiersEnAttente(int $clientDsaId): void   // ← param renommé
+    public function avancerDossiersEnAttente(int $clientId): void   // ← renommé
     {
         Demande::where('type', 'OUVERTURE_COMPTE')
-            ->where('client_dsa_id', $clientDsaId)                     // ← CORRIGÉ
+            ->where('client_id', $clientId)                          // ← CHANGÉ
             ->where('statut', 'DOSSIER_SOUMIS')
             ->get()
             ->each(fn (Demande $d) => $this->avancerSiPret($d));

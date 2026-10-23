@@ -12,7 +12,7 @@ class ObjectifMesurableService
 {
     /**
      * Incrémente l'objectif CLIENTS d'un agent pour toutes les campagnes ACTIVES
-     * auxquelles il est affecté. Appelé après création d'un ClientDsa.
+     * auxquelles il est affecté. Appelé après création d'un Client.
      *
      * @return int Nombre d'objectifs incrémentés
      */

@@ -32,7 +32,7 @@ class DemandeController extends Controller
             ])
             ->when($request->filled('type'),          fn ($q) => $q->where('type', $request->string('type')))
             ->when($request->filled('statut'),        fn ($q) => $q->where('statut', $request->string('statut')))
-            ->when($request->filled('client_dsa_id'), fn ($q) => $q->where('client_dsa_id', $request->integer('client_dsa_id')))
+            ->when($request->filled('client_id'), fn ($q) => $q->where('client_id', $request->integer('client_id')))
             ->when($request->filled('agent_dsa_id'),  fn ($q) => $q->where('agent_dsa_id', $request->integer('agent_dsa_id')))
             ->when($request->filled('partenaire_id'), fn ($q) => $q->where('partenaire_id', $request->integer('partenaire_id')))
             ->latest('id')

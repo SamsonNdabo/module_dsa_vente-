@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests\Dsa;
 
-use App\Models\ClientDsa;
+use App\Models\Client;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -17,7 +17,7 @@ class UpdateClientDsaRequest extends FormRequest
     {
         return [
             'nom_complet'            => 'sometimes|string|max:255',
-            'sexe'                   => ['sometimes', Rule::in(ClientDsa::SEXES)],
+            'sexe'                   => ['sometimes', Rule::in(Client::SEXES)],
             'date_naissance'         => 'sometimes|date|before:today',
             'telephone'              => 'sometimes|string|max:30',
             'email'                  => 'nullable|email|max:255',
@@ -28,8 +28,8 @@ class UpdateClientDsaRequest extends FormRequest
             'piece_identite_numero'  => 'nullable|string|max:100',
             'agent_dsa_id'           => 'nullable|integer|exists:agents_dsa,id',
             'zone_id'                => 'nullable|integer|exists:zones,id',
-            'kyc_statut'             => ['sometimes', Rule::in(ClientDsa::KYC_STATUTS)],
-            'statut'                 => ['sometimes', Rule::in(ClientDsa::STATUTS)],
+            'kyc_statut'             => ['sometimes', Rule::in(Client::KYC_STATUTS)],
+            'statut' => ['sometimes', Rule::in(Client::STATUTS_DSA)],
             'metadata'               => 'nullable|array',
         ];
     }

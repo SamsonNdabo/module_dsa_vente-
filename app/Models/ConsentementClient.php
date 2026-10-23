@@ -10,7 +10,7 @@ class ConsentementClient extends Model
     protected $table = 'consentements_client';
 
     protected $fillable = [
-        'client_dsa_id',
+        'client_id',
         'demande_id',
         'type_consentement',
         'version_formulaire',
@@ -29,9 +29,9 @@ class ConsentementClient extends Model
 
     public const TYPES = ['KYC_DATA', 'PARTAGE_PARTENAIRE', 'SCORE_CREDIT', 'COMMUNICATION'];
 
-    public function client(): BelongsTo
+    public function client()
     {
-        return $this->belongsTo(ClientDsa::class, 'client_dsa_id');   // ← CORRIGÉ
+        return $this->belongsTo(Client::class, 'client_id');   // ← était ClientDsa
     }
 
     public function demande(): BelongsTo

@@ -246,7 +246,7 @@ class ObjectifMesurableController extends Controller
         $dateFin   = $campagne->date_fin ? $campagne->date_fin->endOfDay() : now();
 
         // Filtrer les clients DSA créés par l'agent pendant la campagne
-        $query = \App\Models\ClientDsa::query()
+        $query = \App\Models\Client::query()
             ->where('agent_dsa_id', $objectif->agent_dsa_id)
             ->whereBetween('created_at', [$dateDebut, $dateFin])
             ->orderByDesc('created_at');

@@ -40,7 +40,7 @@ class AgentDsa extends Model
 
     public function clientsDsa(): HasMany
     {
-        return $this->hasMany(ClientDsa::class, 'agent_dsa_id');
+        return $this->hasMany(Client::class, 'agent_dsa_id');
     }
 
     public function zone(): BelongsTo
@@ -89,4 +89,5 @@ class AgentDsa extends Model
 
         return $q->whereRaw('1 = 0');
     }
+    
 }

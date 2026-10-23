@@ -16,8 +16,16 @@ class KycHandler implements DemandeHandler
     {
         if ($cible === 'SOUMIS') {
             // 1. Consentement KYC_DATA obligatoire pour soumettre
+            $client = $demande->client;
+
+            if (! $client) {
+                throw ValidationException::withMessages([
+                    'client_id' => 'Le client associé à cette demande est introuvable. La demande est obsolète (créée avant la fusion clients_dsa → clients).',
+                ]);
+            }
+
             $consentement = app(ConsentementService::class);
-            if (! $consentement->aConsenti($demande->client, 'KYC_DATA')) {
+            if (! $consentement->aConsenti($client, 'KYC_DATA')) {
                 throw ValidationException::withMessages([
                     'consentement' => 'Le consentement du client pour le traitement des données KYC est requis avant soumission.',
                 ]);
@@ -47,7 +55,7 @@ class KycHandler implements DemandeHandler
             ]);
         }
 
-        // 2. Mise à jour du statut KYC du client DSA (denormalized)
+        // 2. Mise à jour du statut KYC du client (denormalized)
         if ($demande->client) {
             $demande->client->update(['kyc_statut' => $demande->statut]);
         }
@@ -63,15 +71,17 @@ class KycHandler implements DemandeHandler
                 ]);
 
             // Faire avancer les demandes d'ouverture de compte en attente
-            app(RegleKycService::class)->avancerDossiersEnAttente($demande->client_dsa_id);
+            if ($demande->client_id) {
+                app(RegleKycService::class)->avancerDossiersEnAttente($demande->client_id);
+            }
         }
 
         // 4. Cascade REJET → rejeter les ouvertures de compte en attente
-        if ($demande->statut === 'REJETE') {
+        if ($demande->statut === 'REJETE' && $demande->client_id) {
             $workflow = app(WorkflowService::class);
 
             Demande::where('type', 'OUVERTURE_COMPTE')
-                ->where('client_dsa_id', $demande->client_dsa_id)
+                ->where('client_id', $demande->client_id)
                 ->where('statut', 'DOSSIER_SOUMIS')
                 ->get()
                 ->each(fn (Demande $c) => $workflow->transitionner(

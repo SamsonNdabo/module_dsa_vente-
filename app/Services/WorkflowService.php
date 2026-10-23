@@ -28,10 +28,11 @@ class WorkflowService
                 return $existante;
             }
 
-            // Sécurité : un client_dsa_id est obligatoire
-            if (empty($attrs['client_dsa_id'])) {
+            // Sécurité : un Client_id est obligatoire
+                        // Sécurité : un client_id est obligatoire
+            if (empty($attrs['client_id'])) {
                 throw ValidationException::withMessages([
-                    'client_dsa_id' => 'Le client DSA est obligatoire.',
+                    'client_id' => 'Le client est obligatoire.',
                 ]);
             }
 

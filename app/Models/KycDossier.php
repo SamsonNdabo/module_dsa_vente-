@@ -11,7 +11,7 @@ class KycDossier extends Model
     protected $table = 'kyc_dossiers';
 
     protected $fillable = [
-        'demande_id', 'client_dsa_id', 'statut', 'signature_ref',
+        'demande_id', 'client_id', 'statut', 'signature_ref',
         'decision_at', 'decision_par',
     ];
 
@@ -22,9 +22,10 @@ class KycDossier extends Model
         return $this->belongsTo(Demande::class, 'demande_id');
     }
 
-    public function client(): BelongsTo
+    // Relation client
+    public function client()
     {
-        return $this->belongsTo(Client::class, 'client_dsa_id');
+        return $this->belongsTo(Client::class, 'client_id');   // ← était ClientDsa
     }
 
     public function pieces(): HasMany

@@ -1,525 +1,463 @@
 (function () {
     'use strict';
+    if (!document.getElementById('table-body')) return;
 
-    const TABLE = document.getElementById('table-body');
-    if (!TABLE) {
-        console.warn('[CLIENTS] #table-body introuvable — script ignoré');
-        return;
-    }
-
-    console.log('[CLIENTS] script chargé');
-
-    // ─────────────────────────────────────────────────────────
-    // STATE
-    // ─────────────────────────────────────────────────────────
-    let state = {
-        page: 1,
-        recherche: '',
-        statut: '',
-        kyc_statut: '',
-        agent_dsa_id: '',
-    };
-
-    let currentTab = 'pos';
-    let agents = [];
+    let state = { page: 1, recherche: '', statut: '', kyc_statut: '', type_client: '', zone_id: '' };
     let zones = [];
-    let selectedClientPos = null;
+    let agents = [];
 
     const $  = sel => document.querySelector(sel);
     const $$ = sel => [...document.querySelectorAll(sel)];
 
-    // ─────────────────────────────────────────────────────────
+    // ══════════════════════════════════════════════════════════
+    // HELPERS
+    // ══════════════════════════════════════════════════════════
+    function safeToast(type, msg) {
+        if (window.UI && typeof UI.toast === 'function') UI.toast(type, msg);
+        else { console.log(`[${type}]`, msg); if (type === 'danger') alert(msg); }
+    }
+
+    function openModal(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.remove('hidden');
+        el.classList.add('flex');
+        el.style.display = 'flex';
+        el.querySelector('.modal-content')?.classList.replace('scale-95', 'scale-100');
+    }
+
+    function closeModal(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.add('hidden');
+        el.classList.remove('flex');
+        el.style.display = 'none';
+        el.querySelector('.modal-content')?.classList.replace('scale-100', 'scale-95');
+    }
+
+    function setLoading(btn, loading) {
+        if (!btn) return;
+        const spinner = btn.querySelector('.spinner');
+        if (spinner) spinner.classList.toggle('hidden', !loading);
+        btn.disabled = loading;
+        btn.classList.toggle('opacity-60', loading);
+    }
+
+    // Toggle blocs selon type_client
+    function toggleTypeBlocs() {
+        const type = $('#type_client')?.value;
+        const blocPersonne = $('#bloc-personne');
+        const blocEntreprise = $('#bloc-entreprise');
+
+        if (!blocPersonne || !blocEntreprise) return;
+
+        if (type === 'PERSONNE_PHYSIQUE') {
+            blocPersonne.classList.remove('hidden');
+            blocEntreprise.classList.add('hidden');
+        } else if (type === 'ENTREPRISE') {
+            blocPersonne.classList.add('hidden');
+            blocEntreprise.classList.remove('hidden');
+        } else {
+            // AUTRE : les deux masqués (seuls les champs communs sont obligatoires)
+            blocPersonne.classList.add('hidden');
+            blocEntreprise.classList.add('hidden');
+        }
+    }
+
+    // ══════════════════════════════════════════════════════════
     // INIT
-    // ─────────────────────────────────────────────────────────
+    // ══════════════════════════════════════════════════════════
     async function init() {
         if (!API.isAuthenticated()) {
             window.location.href = window.APP_BASE + '/login';
             return;
         }
 
-        // Chaque chargement est isolé : si l'un échoue, les autres continuent
-        await Promise.allSettled([loadAgents(), loadZones()]);
-
         try {
+            await Promise.all([loadZones(), loadAgents()]);
             await loadClients();
         } catch (e) {
-            console.error('[CLIENTS] loadClients fatal:', e);
-            TABLE.innerHTML = `<tr><td colspan="8" class="p-10 text-center text-red-500">
-                Erreur fatale : ${UI.escapeHtml(e.message || 'Inconnue')}
-            </td></tr>`;
+            console.error('[CLIENTS] init:', e);
         }
 
-        // TOUJOURS attacher les événements
         attachEvents();
     }
 
-    // ─────────────────────────────────────────────────────────
-    // CHARGEMENT : AGENTS
-    // ─────────────────────────────────────────────────────────
-    async function loadAgents() {
-        try {
-            const res = await API.get('/dsa/agents/options');
-            console.log('[CLIENTS] agents →', res.status);
-
-            if (!res.ok) {
-                console.warn('[CLIENTS] agents KO:', res.status, res.data);
-                return;
-            }
-
-            const list = res.data?.data ?? res.data ?? [];
-            agents = Array.isArray(list) ? list : [];
-
-            const filterSel = $('#filter-agent');
-            const formSel   = $('#agent_dsa_id');
-
-            agents.forEach(a => {
-                const label = a.nom_complet || a.code || `#${a.id}`;
-                const opt = `<option value="${a.id}">${UI.escapeHtml(label)}</option>`;
-                if (filterSel) filterSel.insertAdjacentHTML('beforeend', opt);
-                if (formSel)   formSel.insertAdjacentHTML('beforeend', opt);
-            });
-
-            console.log('[CLIENTS] agents chargés:', agents.length);
-        } catch (e) {
-            console.error('[CLIENTS] agents exception:', e);
-        }
-    }
-
-    // ─────────────────────────────────────────────────────────
-    // CHARGEMENT : ZONES
-    // ─────────────────────────────────────────────────────────
     async function loadZones() {
         try {
-            const res = await API.get('/dsa/zones/options');
-            console.log('[CLIENTS] zones →', res.status);
-
-            if (!res.ok) {
-                console.warn('[CLIENTS] zones KO:', res.status, res.data);
-                return;
+            const res = await API.get('/zones/options');
+            if (res.ok && res.data?.data) {
+                zones = res.data.data;
+                const selFilter = $('#filter-zone');
+                const selForm = $('#zone_id');
+                zones.forEach(z => {
+                    const opt = `<option value="${z.id}">${UI.escapeHtml(z.nom)}</option>`;
+                    if (selFilter) selFilter.insertAdjacentHTML('beforeend', opt);
+                    if (selForm)   selForm.insertAdjacentHTML('beforeend', opt);
+                });
             }
-
-            const list = res.data?.data ?? res.data ?? [];
-            zones = Array.isArray(list) ? list : [];
-
-            const formSel = $('#zone_id');
-            zones.forEach(z => {
-                if (!formSel) return;
-                const code = z.code ?? '';
-                const nom  = z.nom ?? '';
-                formSel.insertAdjacentHTML(
-                    'beforeend',
-                    `<option value="${z.id}">${UI.escapeHtml(code)} — ${UI.escapeHtml(nom)}</option>`
-                );
-            });
-
-            console.log('[CLIENTS] zones chargées:', zones.length);
-        } catch (e) {
-            console.error('[CLIENTS] zones exception:', e);
-        }
+        } catch (e) { console.error(e); }
     }
 
-    // ─────────────────────────────────────────────────────────
-    // CHARGEMENT : CLIENTS
-    // ─────────────────────────────────────────────────────────
+    async function loadAgents() {
+        try {
+            const res = await API.get('/dsa/agents/options?only_actif=1');
+            if (res.ok && res.data?.data) {
+                agents = res.data.data;
+                const sel = $('#agent_dsa_id');
+                agents.forEach(a => {
+                    if (sel) sel.insertAdjacentHTML('beforeend',
+                        `<option value="${a.id}">${UI.escapeHtml(a.nom_complet)} (${UI.escapeHtml(a.code)})</option>`);
+                });
+            }
+        } catch (e) { console.error(e); }
+    }
+
     async function loadClients(page = 1) {
         state.page = page;
-        TABLE.innerHTML = `<tr><td colspan="8" class="p-10 text-center text-gray-400">
+        const tbody = $('#table-body');
+        tbody.innerHTML = `<tr><td colspan="8" class="p-10 text-center text-gray-400">
             <i class="fas fa-spinner fa-spin text-2xl"></i></td></tr>`;
 
         const params = new URLSearchParams({
-            page,
-            per_page: 15,
+            page, per_page: 15,
             ...(state.recherche   && { q: state.recherche }),
             ...(state.statut      && { statut: state.statut }),
             ...(state.kyc_statut  && { kyc_statut: state.kyc_statut }),
-            ...(state.agent_dsa_id && { agent_dsa_id: state.agent_dsa_id }),
+            ...(state.type_client && { type_client: state.type_client }),
+            ...(state.zone_id     && { zone_id: state.zone_id }),
         });
 
         try {
             const res = await API.get('/dsa/clients?' + params);
-            console.log('[CLIENTS] liste →', res.status);
-
             if (!res.ok) {
-                const msg = res.data?.message || res.data?.error || `HTTP ${res.status}`;
-                TABLE.innerHTML = `<tr><td colspan="8" class="p-10 text-center text-red-500">
-                    Erreur : ${UI.escapeHtml(msg)}
-                </td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" class="p-10 text-center text-red-500">Erreur ${res.status}</td></tr>`;
                 return;
             }
 
-            // Le controller renvoie soit Resource collection (data.data), soit objet paginé
-            const paginator = res.data?.data ?? res.data ?? {};
-            const items = paginator.data ?? paginator ?? [];
+            const payload = res.data;
+            const items = payload.data || [];
+            const meta = payload.meta || {};
 
             renderTable(items);
-            computeStats(items);
-
-            if (UI.renderPagination && paginator.current_page !== undefined) {
-                UI.renderPagination($('#pagination'), paginator, p => loadClients(p));
+            if (meta.last_page > 1) {
+                UI.renderPagination($('#pagination'), {
+                    current_page: meta.current_page,
+                    last_page: meta.last_page,
+                }, p => loadClients(p));
+            } else {
+                $('#pagination').innerHTML = '';
             }
         } catch (e) {
-            console.error('[CLIENTS] loadClients exception:', e);
-            TABLE.innerHTML = `<tr><td colspan="8" class="p-10 text-center text-red-500">
-                Exception : ${UI.escapeHtml(e.message || 'Inconnue')}
-            </td></tr>`;
+            console.error('[CLIENTS] list:', e);
+            tbody.innerHTML = `<tr><td colspan="8" class="p-10 text-center text-red-500">Exception : ${UI.escapeHtml(e.message)}</td></tr>`;
         }
     }
 
-    // ─────────────────────────────────────────────────────────
-    // STATS
-    // ─────────────────────────────────────────────────────────
-    function computeStats(items) {
-        const el = id => document.getElementById(id);
-        if (el('stat-total'))      el('stat-total').textContent      = items.length;
-        if (el('stat-actifs'))     el('stat-actifs').textContent     = items.filter(c => c.statut === 'ACTIF').length;
-        if (el('stat-kyc-valide')) el('stat-kyc-valide').textContent = items.filter(c => c.kyc_statut === 'VALIDE').length;
-        if (el('stat-pos'))        el('stat-pos').textContent        = items.filter(c => c.client_id).length;
-    }
-
-    // ─────────────────────────────────────────────────────────
-    // TABLE
-    // ─────────────────────────────────────────────────────────
-    function renderTable(items) {
-        if (!items.length) {
-            TABLE.innerHTML = `<tr><td colspan="8" class="p-10 text-center text-gray-400">
-                <i class="fas fa-inbox text-3xl mb-2 block"></i>Aucun client DSA</td></tr>`;
+    function renderTable(clients) {
+        const tbody = $('#table-body');
+        if (!clients.length) {
+            tbody.innerHTML = `<tr><td colspan="8" class="p-10 text-center text-gray-400">
+                <i class="fas fa-inbox text-3xl mb-2 block"></i>Aucun client</td></tr>`;
             return;
         }
 
-        TABLE.innerHTML = items.map(c => {
-            const kycBadge = {
-                AUCUN:      '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-600">Aucun</span>',
-                EN_ATTENTE: '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-amber-50 text-amber-700">En attente</span>',
-                EN_COURS:   '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-50 text-blue-700">En cours</span>',
-                VALIDE:     '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700">Validé</span>',
-                REJETE:     '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-50 text-red-700">Rejeté</span>',
-            }[c.kyc_statut] || '—';
+        const statutColor = {
+            ACTIF:    'bg-emerald-50 text-emerald-700',
+            INACTIF:  'bg-gray-100 text-gray-600',
+            BLOQUE:   'bg-red-50 text-red-700',
+            EN_ATTENTE: 'bg-amber-50 text-amber-700',
+        };
+        const kycColor = {
+            AUCUN:      'bg-gray-100 text-gray-600',
+            EN_ATTENTE: 'bg-amber-50 text-amber-700',
+            EN_COURS:   'bg-blue-50 text-blue-700',
+            VALIDE:     'bg-emerald-50 text-emerald-700',
+            REJETE:     'bg-red-50 text-red-700',
+        };
+        const typeBadge = {
+            PERSONNE_PHYSIQUE: '<span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-blue-50 text-blue-700"><i class="fas fa-user mr-1"></i>Personne</span>',
+            ENTREPRISE:        '<span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-purple-50 text-purple-700"><i class="fas fa-building mr-1"></i>Entreprise</span>',
+            AUTRE:             '<span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-gray-100 text-gray-700"><i class="fas fa-question mr-1"></i>Autre</span>',
+        };
 
-            const statutBadge =
-                c.statut === 'ACTIF'
-                    ? '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700">Actif</span>'
-                    : c.statut === 'BLOQUE'
-                        ? '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-50 text-red-700">Bloqué</span>'
-                        : '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-600">Inactif</span>';
-
-            return `
+        tbody.innerHTML = clients.map(c => `
             <tr class="hover:bg-gray-50">
-                <td class="px-4 py-3 font-mono text-xs">${UI.escapeHtml(c.code_client || '')}</td>
+                <td class="px-4 py-3 font-mono text-xs">${UI.escapeHtml(c.code_client)}</td>
+                <td class="px-4 py-3">${typeBadge[c.type_client] || '—'}</td>
+                <td class="px-4 py-3 font-medium text-gray-900">${UI.escapeHtml(c.nom_complet)}</td>
+                <td class="px-4 py-3 text-gray-600">${UI.escapeHtml(c.telephone || '—')}</td>
+                <td class="px-4 py-3 text-gray-600">${c.zone ? UI.escapeHtml(c.zone.nom) : '—'}</td>
                 <td class="px-4 py-3">
-                    <div class="font-medium text-gray-900">${UI.escapeHtml(c.nom_complet || '')}</div>
-                    <div class="text-xs text-gray-500">${UI.escapeHtml(c.email || '')}</div>
+                    <span class="px-2 py-1 text-xs font-semibold rounded-full ${kycColor[c.kyc_statut] || 'bg-gray-100 text-gray-600'}">
+                        ${UI.escapeHtml(c.kyc_statut_label || c.kyc_statut)}
+                    </span>
                 </td>
-                <td class="px-4 py-3 text-xs">${UI.escapeHtml(c.telephone || '')}</td>
-                <td class="px-4 py-3 text-xs text-gray-600">${c.agent_dsa ? UI.escapeHtml(c.agent_dsa.nom_complet) : '—'}</td>
-                <td class="px-4 py-3">${kycBadge}</td>
-                <td class="px-4 py-3 text-center">
-                    ${c.client_id
-                        ? '<i class="fas fa-link text-emerald-500" title="Lié au POS"></i>'
-                        : '<span class="text-xs text-gray-400">—</span>'}
+                <td class="px-4 py-3">
+                    <span class="px-2 py-1 text-xs font-semibold rounded-full ${statutColor[c.statut] || 'bg-gray-100 text-gray-600'}">
+                        ${UI.escapeHtml(c.statut)}
+                    </span>
                 </td>
-                <td class="px-4 py-3">${statutBadge}</td>
                 <td class="px-4 py-3 text-right">
-                    <button data-action="edit" data-id="${c.id}"
+                    <button data-action="edit" data-id="${c.id}" title="Modifier"
                             class="px-2 py-1 text-xs text-indigo-600 bg-indigo-50 rounded hover:bg-indigo-100">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button data-action="delete" data-id="${c.id}" data-name="${UI.escapeHtml(c.nom_complet || '')}"
+                    <button data-action="statut" data-id="${c.id}" data-statut="${c.statut}" title="Changer statut"
+                            class="px-2 py-1 text-xs text-amber-600 bg-amber-50 rounded hover:bg-amber-100">
+                        <i class="fas fa-exchange-alt"></i>
+                    </button>
+                    <button data-action="delete" data-id="${c.id}" data-nom="${UI.escapeHtml(c.nom_complet)}" title="Supprimer"
                             class="px-2 py-1 text-xs text-red-600 bg-red-50 rounded hover:bg-red-100">
                         <i class="fas fa-trash"></i>
                     </button>
                 </td>
-            </tr>`;
-        }).join('');
+            </tr>`).join('');
     }
 
-    // ─────────────────────────────────────────────────────────
-    // ONGLETS
-    // ─────────────────────────────────────────────────────────
-    function setTab(tab) {
-        currentTab = tab;
-        $$('[data-tab]').forEach(b => {
-            const active = b.dataset.tab === tab;
-            b.classList.toggle('border-indigo-600', active);
-            b.classList.toggle('text-indigo-600', active);
-            b.classList.toggle('border-transparent', !active);
-            b.classList.toggle('text-gray-500', !active);
-        });
-        $$('[data-tab-content]').forEach(c => {
-            c.classList.toggle('hidden', c.dataset.tabContent !== tab);
-        });
-    }
-
-    // ─────────────────────────────────────────────────────────
-    // RECHERCHE CLIENT POS
-    // ─────────────────────────────────────────────────────────
-    async function searchClientsPos(query) {
-        const container = $('#search-pos-results');
-        if (!container) return;
-        if (!query || query.length < 2) { container.classList.add('hidden'); return; }
-
-        try {
-            const res = await API.get('/dsa/clients/clients-pos-disponibles?q=' + encodeURIComponent(query));
-            if (!res.ok) return;
-
-            const results = res.data?.data ?? res.data ?? [];
-
-            if (!results.length) {
-                container.innerHTML = '<div class="p-3 text-sm text-gray-500">Aucun client POS disponible</div>';
-                container.classList.remove('hidden');
-                return;
-            }
-
-            container.innerHTML = results.map(c => `
-                <div class="p-3 border-b border-gray-100 hover:bg-indigo-50 cursor-pointer" data-pos-id="${c.id}">
-                    <div class="font-medium text-gray-900">${UI.escapeHtml(c.nom_complet || '')}</div>
-                    <div class="text-xs text-gray-500">${UI.escapeHtml(c.code_client || '')} · ${UI.escapeHtml(c.telephone || '')}</div>
-                </div>
-            `).join('');
-            container.classList.remove('hidden');
-
-            container.querySelectorAll('[data-pos-id]').forEach(el => {
-                el.addEventListener('click', () => {
-                    const id = parseInt(el.dataset.posId, 10);
-                    const client = results.find(r => r.id === id);
-                    if (client) selectClientPos(client);
-                });
-            });
-        } catch (e) {
-            console.error('[CLIENTS] searchPos exception:', e);
-        }
-    }
-
-    function selectClientPos(client) {
-        selectedClientPos = client;
-        if ($('#client_id_pos')) $('#client_id_pos').value = client.id;
-        if ($('#pos-nom')) $('#pos-nom').textContent = client.nom_complet;
-        if ($('#pos-code')) $('#pos-code').textContent = `${client.code_client || ''} · ${client.telephone || ''}`;
-        $('#client-pos-selectionne')?.classList.remove('hidden');
-        $('#search-pos-results')?.classList.add('hidden');
-        if ($('#search-pos')) $('#search-pos').value = client.nom_complet;
-
-        if (!$('#nom_complet').value) $('#nom_complet').value = client.nom_complet || '';
-        if (!$('#telephone').value)   $('#telephone').value   = client.telephone || '';
-        if (!$('#email').value && client.email) $('#email').value = client.email;
-        if (!$('#adresse').value && client.adresse) $('#adresse').value = client.adresse;
-    }
-
-    function clearClientPos() {
-        selectedClientPos = null;
-        if ($('#client_id_pos')) $('#client_id_pos').value = '';
-        $('#client-pos-selectionne')?.classList.add('hidden');
-        if ($('#search-pos')) $('#search-pos').value = '';
-        $('#search-pos-results')?.classList.add('hidden');
-    }
-
-    // ─────────────────────────────────────────────────────────
-    // EVENTS
-    // ─────────────────────────────────────────────────────────
-    function attachEvents() {
-        console.log('[CLIENTS] attachEvents()');
-
-        $$('[data-tab]').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
-
-        $('#search-pos')?.addEventListener('input', UI.debounce(e => searchClientsPos(e.target.value.trim()), 300));
-        $('#btn-clear-pos')?.addEventListener('click', clearClientPos);
-
-        document.addEventListener('click', e => {
-            const btn = e.target.closest('[data-action]');
-            if (!btn) return;
-            const { action, id, name } = btn.dataset;
-            if (action === 'edit')   return openEdit(id);
-            if (action === 'delete') return confirmDelete(id, name);
-        });
-
-        $('#client-form')?.addEventListener('submit', onSubmit);
-
-        $('#search-input')?.addEventListener('input', UI.debounce(e => {
-            state.recherche = e.target.value.trim();
-            loadClients(1);
-        }, 400));
-
-        ['#filter-statut', '#filter-kyc', '#filter-agent'].forEach(sel => {
-            $(sel)?.addEventListener('change', e => {
-                if (sel === '#filter-statut')      state.statut = e.target.value;
-                if (sel === '#filter-kyc')         state.kyc_statut = e.target.value;
-                if (sel === '#filter-agent')       state.agent_dsa_id = e.target.value;
-                loadClients(1);
-            });
-        });
-
-        $('#btn-refresh')?.addEventListener('click', () => loadClients(state.page));
-
-        const btnCreate = $('#btn-create');
-        if (btnCreate) {
-            btnCreate.addEventListener('click', () => {
-                console.log('[CLIENTS] openCreate()');
-                openCreate();
-            });
-        } else {
-            console.warn('[CLIENTS] #btn-create introuvable');
-        }
-
-        $$('[data-close-modal]').forEach(b =>
-            b.addEventListener('click', () => UI.closeModal('client-modal'))
-        );
-
-        const modal = $('#client-modal');
-        if (modal) {
-            modal.addEventListener('click', e => {
-                if (e.target.id === 'client-modal') UI.closeModal('client-modal');
-            });
-        } else {
-            console.warn('[CLIENTS] #client-modal introuvable — vérifie le @include modal.blade.php');
-        }
-    }
-
-    // ─────────────────────────────────────────────────────────
-    // MODAL : OUVERTURE
-    // ─────────────────────────────────────────────────────────
-    function safeOpenModal() {
-        const el = document.getElementById('client-modal');
-        if (!el) { console.error('[CLIENTS] #client-modal introuvable'); return; }
-        el.classList.remove('hidden');
-        el.classList.add('flex');
-        const content = el.querySelector('.modal-content');
-        if (content) {
-            content.classList.remove('scale-95');
-            content.classList.add('scale-100');
-        }
-    }
-
-    function safeCloseModal() {
-        const el = document.getElementById('client-modal');
-        if (!el) return;
-        el.classList.add('hidden');
-        el.classList.remove('flex');
-        const content = el.querySelector('.modal-content');
-        if (content) {
-            content.classList.remove('scale-100');
-            content.classList.add('scale-95');
-        }
-    }
-
-    // ─────────────────────────────────────────────────────────
-    // CRUD
-    // ─────────────────────────────────────────────────────────
+    // ══════════════════════════════════════════════════════════
+    // CRÉATION
+    // ══════════════════════════════════════════════════════════
     function openCreate() {
-        console.log('[CLIENTS] openCreate() → reset');
+        const titleEl = $('#modal-title');
+        if (titleEl) titleEl.textContent = 'Nouveau client';
 
-        $('#modal-title').textContent = 'Nouveau client DSA';
-        $('#client-form').reset();
+        const form = $('#client-form');
+        if (form) form.reset();
+
         $('#client-id').value = '';
-        $('#client_id_pos').value = '';
-        $('#client-pos-selectionne')?.classList.add('hidden');
-        $('#search-pos-results')?.classList.add('hidden');
-        if ($('#creer_client_pos')) $('#creer_client_pos').checked = false;
-        setTab('pos');
+        $('#type_client').value = 'PERSONNE_PHYSIQUE';
+        toggleTypeBlocs();
 
-        safeOpenModal();
+        openModal('client-modal');
     }
 
+    // ══════════════════════════════════════════════════════════
+    // ÉDITION
+    // ══════════════════════════════════════════════════════════
     async function openEdit(id) {
-        try {
-            const res = await API.get('/dsa/clients/' + id);
-            if (!res.ok) { UI.toast('danger', 'Client introuvable'); return; }
+        const res = await API.get('/dsa/clients/' + id);
+        if (!res.ok) { safeToast('danger', 'Client introuvable'); return; }
 
-            const c = res.data?.data ?? res.data;
+        const c = res.data.data;
+        $('#modal-title').textContent = 'Modifier le client';
+        $('#client-id').value = c.id;
 
-            $('#modal-title').textContent = 'Modifier le client DSA';
-            $('#client-id').value = c.id;
-            $('#nom_complet').value = c.nom_complet || '';
-            $('#sexe').value = c.sexe || '';
-            $('#date_naissance').value = c.date_naissance || '';
-            $('#telephone').value = c.telephone || '';
-            $('#email').value = c.email || '';
-            $('#adresse').value = c.adresse || '';
-            $('#profession').value = c.profession || '';
-            $('#activite_economique').value = c.activite_economique || '';
-            $('#agent_dsa_id').value = c.agent_dsa_id || '';
-            $('#zone_id').value = c.zone_id || '';
-            $('#piece_identite_type').value = c.piece_identite_type || '';
-            $('#piece_identite_numero').value = c.piece_identite_numero || '';
+        // Type
+        $('#type_client').value = c.type_client || 'PERSONNE_PHYSIQUE';
 
-            if (c.client_id) {
-                selectClientPos({
-                    id: c.client_id,
-                    nom_complet: c.client_pos?.nom_complet || '',
-                    code_client: c.client_pos?.code || '',
-                    telephone: c.client_pos?.telephone || '',
-                });
-                setTab('pos');
-            } else {
-                setTab('nouveau');
-            }
+        // Commun
+        $('#nom_complet').value = c.nom_complet || '';
+        $('#telephone').value = c.telephone || '';
+        $('#email').value = c.email || '';
+        $('#adresse').value = c.adresse || '';
 
-            safeOpenModal();
-        } catch (e) {
-            console.error('[CLIENTS] openEdit exception:', e);
-            UI.toast('danger', 'Erreur lors du chargement');
-        }
+        // Personne physique
+        $('#sexe').value = c.sexe || '';
+        $('#date_naissance').value = c.date_naissance || '';
+        $('#profession').value = c.profession || '';
+        $('#activite_economique').value = c.activite_economique || '';
+
+        // Entreprise
+        $('#raison_sociale').value = c.raison_sociale || '';
+        $('#numero_rc').value = c.numero_rc || '';
+        $('#numero_impot').value = c.numero_impot || '';
+        $('#representant_legal').value = c.representant_legal || '';
+
+        // Pièce
+        $('#piece_identite_type').value = c.piece_identite_type || '';
+        $('#piece_identite_numero').value = c.piece_identite_numero || '';
+
+        // Rattachement
+        $('#agent_dsa_id').value = c.agent_dsa_id || '';
+        $('#zone_id').value = c.zone_id || '';
+
+        toggleTypeBlocs();
+        openModal('client-modal');
     }
 
+    // ══════════════════════════════════════════════════════════
+    // SUBMIT
+    // ══════════════════════════════════════════════════════════
     async function onSubmit(e) {
         e.preventDefault();
         const id = $('#client-id').value;
         const isEdit = !!id;
         const btn = $('#btn-save');
 
+        const type = $('#type_client').value;
+
         const payload = {
-            nom_complet: $('#nom_complet').value.trim(),
-            sexe: $('#sexe').value,
-            date_naissance: $('#date_naissance').value,
-            telephone: $('#telephone').value.trim(),
-            email: $('#email').value.trim() || null,
-            adresse: $('#adresse').value.trim(),
-            profession: $('#profession').value.trim(),
-            activite_economique: $('#activite_economique').value.trim(),
-            agent_dsa_id: $('#agent_dsa_id').value || null,
-            zone_id: $('#zone_id').value || null,
-            piece_identite_type: $('#piece_identite_type').value || null,
+            type_client:       type,
+            nom_complet:       $('#nom_complet').value.trim(),
+            telephone:         $('#telephone').value.trim(),
+            email:             $('#email').value.trim() || null,
+            adresse:           $('#adresse').value.trim(),
+            piece_identite_type:   $('#piece_identite_type').value || null,
             piece_identite_numero: $('#piece_identite_numero').value.trim() || null,
+            agent_dsa_id:      $('#agent_dsa_id').value ? parseInt($('#agent_dsa_id').value, 10) : null,
+            zone_id:           $('#zone_id').value ? parseInt($('#zone_id').value, 10) : null,
         };
 
-        if (!isEdit) {
-            if (currentTab === 'pos' && $('#client_id_pos').value) {
-                payload.client_id = parseInt($('#client_id_pos').value, 10);
-            }
-            if (currentTab === 'nouveau') {
-                payload.creer_client_pos = $('#creer_client_pos').checked;
-            }
+        if (type === 'PERSONNE_PHYSIQUE') {
+            payload.sexe = $('#sexe').value || null;
+            payload.date_naissance = $('#date_naissance').value || null;
+            payload.profession = $('#profession').value.trim() || null;
+            payload.activite_economique = $('#activite_economique').value.trim() || null;
+        } else if (type === 'ENTREPRISE') {
+            payload.raison_sociale = $('#raison_sociale').value.trim() || null;
+            payload.numero_rc = $('#numero_rc').value.trim() || null;
+            payload.numero_impot = $('#numero_impot').value.trim() || null;
+            payload.representant_legal = $('#representant_legal').value.trim() || null;
         }
 
-        UI.setLoading(btn, true);
+        // Validation front minimaliste
+        if (!payload.nom_complet || !payload.telephone || !payload.adresse) {
+            safeToast('danger', 'Nom, téléphone et adresse sont obligatoires.');
+            return;
+        }
+        if (type === 'PERSONNE_PHYSIQUE' && (!payload.sexe || !payload.date_naissance || !payload.profession || !payload.activite_economique)) {
+            safeToast('danger', 'Sexe, date de naissance, profession et activité économique sont obligatoires.');
+            return;
+        }
+        if (type === 'ENTREPRISE' && (!payload.raison_sociale || !payload.numero_rc || !payload.representant_legal)) {
+            safeToast('danger', 'Raison sociale, N° RC et représentant légal sont obligatoires.');
+            return;
+        }
+
+        setLoading(btn, true);
+
         try {
             const res = isEdit
                 ? await API.put('/dsa/clients/' + id, payload)
                 : await API.post('/dsa/clients', payload);
 
+            setLoading(btn, false);
+
             if (res.ok) {
-                UI.toast('success', isEdit ? 'Client mis à jour' : 'Client DSA créé');
-                safeCloseModal();
+                safeToast('success', isEdit ? 'Client mis à jour' : 'Client créé');
+                closeModal('client-modal');
                 loadClients(state.page);
             } else {
-                const errs = res.data?.errors || res.data?.error || res.data?.message;
-                if (typeof errs === 'object') UI.toast('danger', Object.values(errs).flat().join(' · '));
-                else UI.toast('danger', errs || 'Erreur');
+                const errors = res.data?.errors || res.data?.error || res.data?.message;
+                if (typeof errors === 'object') safeToast('danger', Object.values(errors).flat().join(' · '));
+                else safeToast('danger', errors || 'Erreur');
             }
         } catch (err) {
-            console.error('[CLIENTS] submit exception:', err);
-            UI.toast('danger', 'Erreur réseau');
-        } finally {
-            UI.setLoading(btn, false);
+            setLoading(btn, false);
+            console.error('[CLIENTS] onSubmit:', err);
+            safeToast('danger', 'Erreur réseau');
         }
     }
 
-    function confirmDelete(id, name) {
-        UI.confirm(`Supprimer le client "${name}" ?`, async () => {
-            const res = await API.delete('/dsa/clients/' + id);
-            if (res.ok) { UI.toast('success', 'Client supprimé'); loadClients(state.page); }
-            else UI.toast('danger', res.data?.error || 'Erreur');
-        }, { title: 'Supprimer', confirmText: 'Supprimer' });
+    // ══════════════════════════════════════════════════════════
+    // CHANGER STATUT
+    // ══════════════════════════════════════════════════════════
+    async function promptStatut(id, currentStatut) {
+        const transitions = {
+            ACTIF:    ['INACTIF', 'BLOQUE'],
+            INACTIF:  ['ACTIF', 'BLOQUE'],
+            BLOQUE:   ['ACTIF', 'INACTIF'],
+        };
+        const options = transitions[currentStatut] || [];
+        if (!options.length) {
+            safeToast('warning', 'Aucune transition possible depuis ' + currentStatut);
+            return;
+        }
+        const choix = prompt('Nouveau statut (' + options.join(', ') + ') :', options[0]);
+        if (!choix || !options.includes(choix.toUpperCase())) return;
+
+        const res = await API.post('/dsa/clients/' + id + '/statut', {
+            statut: choix.toUpperCase(),
+        });
+        if (res.ok) { safeToast('success', 'Statut mis à jour'); loadClients(state.page); }
+        else safeToast('danger', res.data?.error || res.data?.message || 'Erreur');
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // SUPPRIMER
+    // ══════════════════════════════════════════════════════════
+    async function deleteClient(id, nom) {
+        if (!confirm(`Supprimer définitivement le client "${nom}" ?\n\nCette action est réversible (soft delete).`)) return;
+
+        const res = await API.delete('/dsa/clients/' + id);
+        if (res.ok) {
+            safeToast('success', 'Client supprimé');
+            loadClients(state.page);
+        } else {
+            safeToast('danger', res.data?.error || res.data?.message || 'Erreur');
+        }
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // ÉVÉNEMENTS
+    // ══════════════════════════════════════════════════════════
+    function attachEvents() {
+        // Filtres
+        $('#search-input')?.addEventListener('input', UI.debounce(e => {
+            state.recherche = e.target.value.trim();
+            loadClients(1);
+        }, 400));
+
+        $('#filter-type')?.addEventListener('change', e => {
+            state.type_client = e.target.value;
+            loadClients(1);
+        });
+
+        $('#filter-statut')?.addEventListener('change', e => {
+            state.statut = e.target.value;
+            loadClients(1);
+        });
+
+        $('#filter-kyc')?.addEventListener('change', e => {
+            state.kyc_statut = e.target.value;
+            loadClients(1);
+        });
+
+        $('#filter-zone')?.addEventListener('change', e => {
+            state.zone_id = e.target.value;
+            loadClients(1);
+        });
+
+        $('#btn-refresh')?.addEventListener('click', () => loadClients(state.page));
+        $('#btn-create')?.addEventListener('click', openCreate);
+
+        // Toggle type → blocs conditionnels
+        $('#type_client')?.addEventListener('change', toggleTypeBlocs);
+
+        // Actions table
+        document.addEventListener('click', e => {
+            const btn = e.target.closest('[data-action]');
+            if (!btn) return;
+            const { action, id, statut, nom } = btn.dataset;
+            if (action === 'edit')   return openEdit(id);
+            if (action === 'statut') return promptStatut(id, statut);
+            if (action === 'delete') return deleteClient(id, nom);
+        });
+
+        // Submit
+        $('#client-form')?.addEventListener('submit', onSubmit);
+
+        // Fermeture modals
+        $$('[data-close-modal]').forEach(b => {
+            b.addEventListener('click', () => {
+                const mid = b.dataset.closeModal;
+                if (mid) closeModal(mid);
+            });
+        });
+
+        const modal = $('#client-modal');
+        if (modal) {
+            modal.addEventListener('click', e => {
+                if (e.target.id === modal.id) closeModal(modal.id);
+            });
+        }
     }
 
     // GO
-    init();
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
 })();

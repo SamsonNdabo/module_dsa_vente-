@@ -18,14 +18,17 @@ class RegleKycService
         return RegleKycPartenaire::where('partenaire_id', $partenaireId)
             ->where('actif', true)
             ->where(function ($q) use ($produitId) {
-                $q->whereNull('produit_dsa_id');
+                // Règles globales (sans produit)
+                $q->whereDoesntHave('produits');
+
+                // Règles spécifiques au produit (via pivot)
                 if ($produitId) {
-                    $q->orWhere('produit_dsa_id', $produitId);
+                    $q->orWhereHas('produits', fn ($p) => $p->where('produits_dsa.id', $produitId));
                 }
             })
             ->get()
             ->groupBy('type_document')
-            ->map(fn ($groupe) => $groupe->sortByDesc(fn ($r) => $r->produit_dsa_id !== null ? 1 : 0)->first())
+            ->map(fn ($groupe) => $groupe->sortByDesc(fn ($r) => $r->produits->isNotEmpty() ? 1 : 0)->first())
             ->values();
     }
 

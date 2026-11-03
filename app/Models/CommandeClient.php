@@ -71,7 +71,14 @@ class CommandeClient extends Model
         'date_paiement',
         'date_expedition',
         'date_livraison',
-        'metadata'
+        'metadata',
+        'date_livraison_souhaitee',
+        'est_recurrente',
+        'recurrence_type',
+        'recurrence_intervalle',
+        'recurrence_date_fin',
+        'recurrence_nb_occurrences',
+        'commande_parente_id',
     ];
 
     // =============================================
@@ -90,7 +97,12 @@ class CommandeClient extends Model
         'date_expedition' => 'datetime',
         'date_livraison' => 'datetime',
         'date_assignation' => 'datetime',
-        'metadata' => 'array'
+        'metadata' => 'array',
+        'date_livraison_souhaitee' => 'date',
+        'est_recurrente'           => 'boolean',
+        'recurrence_intervalle'    => 'integer',
+        'recurrence_date_fin'      => 'date',
+        'recurrence_nb_occurrences'=> 'integer',
     ];
 
     // =============================================

@@ -82,21 +82,26 @@ class CommandeService
             $fraisLivraison = $this->calculerFraisLivraison($modeLivraison, $sousTotal - $totalRemise);
 
             $commande = CommandeClient::create([
-                'client_id' => $client->id,
-                'statut' => 'EN_ATTENTE_PAIEMENT',
-                'statut_logistique' => 'EN_ATTENTE',
-                'sous_total' => $sousTotal,
-                'remise' => $totalRemise,
-                'frais_livraison' => $fraisLivraison,
-                'total' => ($sousTotal - $totalRemise) + $fraisLivraison,
-                'mode_livraison' => $modeLivraison,
-                'adresse_livraison' => $data['adresse_livraison'] ?? null,
-                'telephone_livraison' => $data['telephone_livraison'] ?? $client->telephone,
-                'notes' => $data['notes'] ?? null,
-                'metadata' => array_merge($data['metadata'] ?? [], [
-                    // ✅ Besoins IMEI stockés pour la logistique, invisibles pour le client
+                'client_id'                => $client->id,
+                'statut'                   => 'EN_ATTENTE_PAIEMENT',
+                'statut_logistique'        => 'EN_ATTENTE',
+                'sous_total'               => $sousTotal,
+                'remise'                   => $totalRemise,
+                'frais_livraison'          => $fraisLivraison,
+                'total'                    => ($sousTotal - $totalRemise) + $fraisLivraison,
+                'mode_livraison'           => $modeLivraison,
+                'adresse_livraison'        => $data['adresse_livraison'] ?? null,
+                'telephone_livraison'      => $data['telephone_livraison'] ?? $client->telephone,
+                'date_livraison_souhaitee' => $data['date_livraison_souhaitee'] ?? null,  // 🆕
+                'est_recurrente'           => $data['est_recurrente'] ?? false,            // 🆕
+                'recurrence_type'          => $data['recurrence_type'] ?? 'AUCUNE',        // 🆕
+                'recurrence_intervalle'    => $data['recurrence_intervalle'] ?? null,      // 🆕
+                'recurrence_date_fin'      => $data['recurrence_date_fin'] ?? null,        // 🆕
+                'recurrence_nb_occurrences'=> $data['recurrence_nb_occurrences'] ?? null,  // 🆕
+                'notes'                    => $data['notes'] ?? null,
+                'metadata'                 => array_merge($data['metadata'] ?? [], [
                     'besoins_imei' => $besoinsImei,
-                    'source' => 'ECOMMERCE',
+                    'source'       => 'ECOMMERCE',
                 ]),
             ]);
 

@@ -123,7 +123,16 @@ class KycService
             $acteur->logAudit('DSA_KYC_PIECE_' . $statut, null, ['piece_id' => $piece->id, 'motif' => $motif]);
 
             if ($statut === 'VALIDE') {
-                $this->regles->avancerDossiersEnAttente($piece->dossier->client_id);   // ← CHANGÉ
+                $clientId = $piece->dossier?->client_id;
+
+                if ($clientId) {
+                    $this->regles->avancerDossiersEnAttente($clientId);
+                } else {
+                    \Log::warning('[KYC] Pièce validée mais dossier sans client_id', [
+                        'piece_id'   => $piece->id,
+                        'dossier_id' => $piece->kyc_dossier_id,
+                    ]);
+                }
             }
 
             return $piece;

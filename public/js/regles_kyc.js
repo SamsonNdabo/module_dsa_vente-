@@ -2,21 +2,10 @@
     'use strict';
     if (!document.getElementById('table-body')) return;
 
-    // ─────────────────────────────────────────────────────────
-    // STATE
-    // ─────────────────────────────────────────────────────────
-    let state = {
-        recherche: '',
-        partenaire_id: '',
-        type: '',
-        actif: '',
-    };
-
+    const state = { recherche: '', partenaire_id: '', type: '', actif: '' };
     let partenaires = [];
-    let produitsDsa = [];
+    let produitsSelectionnes = [];
 
-    // ── Types autorisés par le backend (miroir exact de KycPiece::TYPES_REGLE) ──
-    // Toute modification de KycPiece::TYPES_REGLE doit être répercutée ici.
     const TYPES_DOCUMENTS = [
         { value: 'CARTE_IDENTITE',       label: "Carte d'identité" },
         { value: 'PASSEPORT',            label: 'Passeport' },
@@ -28,18 +17,11 @@
         { value: 'IDENTITE',             label: "Pièce d'identité (au choix)" },
         { value: 'SIGNATURE',            label: 'Signature du dossier' },
     ];
-
-    const TYPES_LABELS = TYPES_DOCUMENTS.reduce((acc, t) => {
-        acc[t.value] = t.label;
-        return acc;
-    }, {});
+    const TYPES_LABELS = TYPES_DOCUMENTS.reduce((a, t) => { a[t.value] = t.label; return a; }, {});
 
     const $  = sel => document.querySelector(sel);
     const $$ = sel => [...document.querySelectorAll(sel)];
 
-    // ─────────────────────────────────────────────────────────
-    // INIT
-    // ─────────────────────────────────────────────────────────
     async function init() {
         if (!API.isAuthenticated()) {
             window.location.href = window.APP_BASE + '/login';
@@ -51,79 +33,149 @@
         attachEvents();
     }
 
-    // ─────────────────────────────────────────────────────────
-    // CHARGEMENTS
-    // ─────────────────────────────────────────────────────────
     async function loadPartenaires() {
         try {
             const res = await API.get('/dsa/partenaires/options');
             if (res.ok && res.data?.data) {
                 partenaires = res.data.data;
-                const filterSel = $('#filter-partenaire');
-                const formSel   = $('#partenaire_id');
                 partenaires.forEach(p => {
                     const opt = `<option value="${p.id}">${UI.escapeHtml(p.nom)}</option>`;
-                    if (filterSel) filterSel.innerHTML += opt;
-                    if (formSel)   formSel.innerHTML   += opt;
+                    $('#filter-partenaire')?.insertAdjacentHTML('beforeend', opt);
+                    $('#partenaire_id')?.insertAdjacentHTML('beforeend', opt);
                 });
             }
-        } catch (e) {
-            console.error('[REGLES-KYC] partenaires:', e);
-        }
+        } catch (e) { console.error(e); }
     }
 
-    async function loadTypesDocuments() {
-        let types = TYPES_DOCUMENTS;
-
-        // Tentative d'API (si endpoint présent)
-        try {
-            const res = await API.get('/dsa/kyc/types-documents');
-            if (res.ok && Array.isArray(res.data?.data) && res.data.data.length) {
-                types = res.data.data.map(t => {
-                    if (typeof t === 'string') {
-                        return { value: t, label: TYPES_LABELS[t] ?? t };
-                    }
-                    const value = t.value ?? t.code ?? t;
-                    return { value, label: t.label ?? TYPES_LABELS[value] ?? value };
-                });
-            }
-        } catch (_) { /* fallback silencieux */ }
-
-        const filterSel = $('#filter-type');
-        const formSel   = $('#type_document');
-
-        types.forEach(t => {
-            const opt = `<option value="${UI.escapeHtml(t.value)}">${UI.escapeHtml(t.label)}</option>`;
-            if (filterSel) filterSel.innerHTML += opt;
-            if (formSel)   formSel.innerHTML   += opt;
+    function loadTypesDocuments() {
+        TYPES_DOCUMENTS.forEach(t => {
+            const opt = `<option value="${t.value}">${UI.escapeHtml(t.label)}</option>`;
+            $('#filter-type')?.insertAdjacentHTML('beforeend', opt);
+            $('#type_document')?.insertAdjacentHTML('beforeend', opt);
         });
     }
 
-    async function loadProduitsPourPartenaire(partenaireId) {
-        const sel = $('#produit_dsa_id');
-        if (!sel) return;
-        sel.innerHTML = '<option value="">Tous les produits (règle globale)</option>';
-        produitsDsa = [];
+    // ═══════════════════════════════════════════════════════════
+    // CHARGEMENT DES PRODUITS (select d'ajout)
+    // ═══════════════════════════════════════════════════════════
+    async function loadProduitsSelect(typeProduit) {
+        const partenaireId = $('#partenaire_id').value;
+        const sel = $('#add-produit-id');
 
-        if (!partenaireId) return;
+        sel.innerHTML = '<option value="">— Chargement... —</option>';
+
+        if (!partenaireId) {
+            sel.innerHTML = '<option value="">— Sélectionnez d\'abord un partenaire —</option>';
+            return;
+        }
 
         try {
-            const res = await API.get('/dsa/produits?partenaire_id=' + partenaireId + '&per_page=200');
-            if (res.ok && res.data?.data?.data) {
-                produitsDsa = res.data.data.data;
-                produitsDsa.forEach(p => {
-                    sel.innerHTML += `<option value="${p.id}">${UI.escapeHtml(p.code)} — ${UI.escapeHtml(p.nom)}</option>`;
-                });
+            const endpoint = typeProduit === 'STOCK'
+                ? `/dsa/produits?partenaire_id=${partenaireId}&per_page=200`
+                : `/dsa/produits-epargne?partenaire_id=${partenaireId}&per_page=200`;
+
+            console.log('[REGLES-KYC] GET', endpoint);
+
+            const res = await API.get(endpoint);
+            if (!res.ok) {
+                console.error('[REGLES-KYC] HTTP', res.status);
+                sel.innerHTML = '<option value="">— Erreur de chargement —</option>';
+                return;
             }
+
+            // ⚠️ Gestion des 2 formats (paginator ou tableau)
+            const produits = res.data?.data?.data || res.data?.data || [];
+            console.log('[REGLES-KYC] Produits reçus:', produits.length);
+
+            if (!produits.length) {
+                sel.innerHTML = '<option value="">— Aucun produit pour ce partenaire —</option>';
+                return;
+            }
+
+            sel.innerHTML = '<option value="">— Sélectionner un produit —</option>' +
+                produits.map(p =>
+                    `<option value="${p.id}">${UI.escapeHtml(p.code_barre || p.code || '')} — ${UI.escapeHtml(p.nom)}</option>`
+                ).join('');
         } catch (e) {
-            console.error('[REGLES-KYC] produits:', e);
+            console.error('[REGLES-KYC] Erreur:', e);
+            sel.innerHTML = '<option value="">— Erreur réseau —</option>';
         }
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // LISTE DES PRODUITS SÉLECTIONNÉS
+    // ═══════════════════════════════════════════════════════════
+    function renderProduitsList() {
+        const container = $('#produits-list');
+
+        if (!produitsSelectionnes.length) {
+            container.innerHTML = '<div class="text-sm text-gray-400 italic text-center py-2">Aucun produit sélectionné (règle globale).</div>';
+            return;
+        }
+
+        container.innerHTML = produitsSelectionnes.map((p, i) => {
+            const badge = p.type === 'STOCK'
+                ? 'bg-blue-50 text-blue-700'
+                : 'bg-emerald-50 text-emerald-700';
+            return `
+                <div class="flex items-center justify-between p-2 bg-gray-50 border border-gray-200 rounded-lg">
+                    <div class="flex items-center gap-2">
+                        <span class="px-2 py-0.5 text-[10px] font-semibold rounded-full ${badge}">${p.type}</span>
+                        <span class="text-sm font-medium text-gray-800">${UI.escapeHtml(p.nom)}</span>
+                        <span class="text-xs text-gray-400 font-mono">${UI.escapeHtml(p.code || '')}</span>
+                    </div>
+                    <button type="button" data-remove-index="${i}" class="text-red-500 hover:text-red-700 text-xs">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+        }).join('');
+
+        container.querySelectorAll('[data-remove-index]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                produitsSelectionnes.splice(parseInt(btn.dataset.removeIndex, 10), 1);
+                renderProduitsList();
+            });
+        });
+    }
+
+    async function ajouterProduit() {
+        const type = $('#add-type-produit').value;
+        const id = $('#add-produit-id').value;
+
+        if (!id) {
+            UI.toast('warning', 'Sélectionnez un produit.');
+            return;
+        }
+
+        const idNum = parseInt(id, 10);
+
+        if (produitsSelectionnes.some(p => p.type === type && p.id === idNum)) {
+            UI.toast('warning', 'Ce produit est déjà sélectionné.');
+            return;
+        }
+
+        const sel = $('#add-produit-id');
+        const opt = sel.querySelector(`option[value="${id}"]`);
+        const label = opt ? opt.textContent : `#${id}`;
+
+        produitsSelectionnes.push({
+            type,
+            id: idNum,
+            nom: label.split(' — ')[1] || label,
+            code: label.split(' — ')[0] || '',
+        });
+
+        renderProduitsList();
+        sel.value = '';
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // CRUD — LISTE
+    // ═══════════════════════════════════════════════════════════
     async function loadRegles() {
         const tbody = $('#table-body');
-        tbody.innerHTML = `<tr><td colspan="7" class="p-10 text-center text-gray-400">
-            <i class="fas fa-spinner fa-spin text-2xl"></i></td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="p-10 text-center text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></td></tr>`;
 
         const params = new URLSearchParams({
             ...(state.partenaire_id && { partenaire_id: state.partenaire_id }),
@@ -131,24 +183,20 @@
 
         const res = await API.get('/dsa/regles-kyc?' + params);
         if (!res.ok) {
-            tbody.innerHTML = `<tr><td colspan="7" class="p-10 text-center text-red-500">Erreur de chargement</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" class="p-10 text-center text-red-500">Erreur</td></tr>`;
             return;
         }
 
         let items = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
 
-        // Filtres côté client
         if (state.recherche) {
             const q = state.recherche.toLowerCase();
-            items = items.filter(r => {
-                const code  = (r.type_document || '').toLowerCase();
-                const label = (TYPES_LABELS[r.type_document] || '').toLowerCase();
-                return code.includes(q) || label.includes(q);
-            });
+            items = items.filter(r =>
+                (r.type_document || '').toLowerCase().includes(q) ||
+                (TYPES_LABELS[r.type_document] || '').toLowerCase().includes(q)
+            );
         }
-        if (state.type) {
-            items = items.filter(r => r.type_document === state.type);
-        }
+        if (state.type) items = items.filter(r => r.type_document === state.type);
         if (state.actif !== '') {
             const a = state.actif === '1';
             items = items.filter(r => !!r.actif === a);
@@ -162,30 +210,40 @@
         $('#stat-total').textContent        = items.length;
         $('#stat-actives').textContent      = items.filter(r => r.actif).length;
         $('#stat-obligatoires').textContent = items.filter(r => r.obligatoire).length;
-        $('#stat-produit').textContent      = items.filter(r => r.produit_dsa_id).length;
+        $('#stat-produit').textContent      = items.filter(r => (r.produits_resolus && r.produits_resolus.length > 0)).length;
     }
 
     function renderTable(items) {
         const tbody = $('#table-body');
         if (!items.length) {
-            tbody.innerHTML = `<tr><td colspan="7" class="p-10 text-center text-gray-400">
-                <i class="fas fa-inbox text-3xl mb-2 block"></i>Aucune règle KYC</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" class="p-10 text-center text-gray-400"><i class="fas fa-inbox text-3xl mb-2 block"></i>Aucune règle</td></tr>`;
             return;
         }
 
         tbody.innerHTML = items.map(r => {
             const partenaire = partenaires.find(p => p.id === r.partenaire_id);
-            const partenaireLabel = partenaire ? UI.escapeHtml(partenaire.nom) : `#${r.partenaire_id}`;
-            const produitLabel = r.produit
-                ? `${UI.escapeHtml(r.produit.code)} — ${UI.escapeHtml(r.produit.nom)}`
-                : '<span class="text-gray-400 italic">Tous les produits</span>';
+            const partenaireLabel = partenaire
+                ? UI.escapeHtml(partenaire.nom)
+                : (r.partenaire?.nom ? UI.escapeHtml(r.partenaire.nom) : `#${r.partenaire_id}`);
+
+            let produitsLabel;
+            if (r.produits_resolus && r.produits_resolus.length > 0) {
+                produitsLabel = r.produits_resolus.map(p => {
+                    const badge = p.type_produit === 'STOCK'
+                        ? 'bg-blue-50 text-blue-700'
+                        : 'bg-emerald-50 text-emerald-700';
+                    return `<span class="inline-block px-2 py-0.5 mb-0.5 text-[10px] font-semibold rounded-full ${badge}">${p.type_produit}: ${UI.escapeHtml(p.nom || '')}</span>`;
+                }).join(' ');
+            } else {
+                produitsLabel = '<span class="text-xs text-gray-400 italic"><i class="fas fa-globe mr-1"></i>Tous les produits</span>';
+            }
 
             const typeLabel = TYPES_LABELS[r.type_document] ?? r.type_document;
 
             return `
             <tr class="hover:bg-gray-50">
                 <td class="px-4 py-3 text-gray-700 font-medium">${partenaireLabel}</td>
-                <td class="px-4 py-3 text-xs text-gray-600">${produitLabel}</td>
+                <td class="px-4 py-3 max-w-xs">${produitsLabel}</td>
                 <td class="px-4 py-3">
                     <div class="font-medium text-gray-800">${UI.escapeHtml(typeLabel)}</div>
                     <div class="text-[10px] text-gray-400 font-mono">${UI.escapeHtml(r.type_document)}</div>
@@ -205,45 +263,53 @@
                     </button>
                 </td>
                 <td class="px-4 py-3 text-right">
-                    <button data-action="edit" data-id="${r.id}"
-                            class="px-2 py-1 text-xs text-indigo-600 bg-indigo-50 rounded hover:bg-indigo-100">
-                        <i class="fas fa-edit"></i>
-                    </button>
+                    <button data-action="edit" data-id="${r.id}" class="px-2 py-1 text-xs text-indigo-600 bg-indigo-50 rounded hover:bg-indigo-100"><i class="fas fa-edit"></i></button>
                 </td>
             </tr>`;
         }).join('');
     }
 
-    // ─────────────────────────────────────────────────────────
-    // EVENTS
-    // ─────────────────────────────────────────────────────────
+    // ═══════════════════════════════════════════════════════════
+    // ÉVÉNEMENTS
+    // ═══════════════════════════════════════════════════════════
     function attachEvents() {
-        // Filtres
-        $('#search-input').addEventListener('input', UI.debounce(e => {
+        $('#search-input')?.addEventListener('input', UI.debounce(e => {
             state.recherche = e.target.value.trim();
             loadRegles();
         }, 300));
-        $('#filter-partenaire').addEventListener('change', e => {
+
+        $('#filter-partenaire')?.addEventListener('change', e => {
             state.partenaire_id = e.target.value;
             loadRegles();
         });
-        $('#filter-type').addEventListener('change', e => {
+
+        $('#filter-type')?.addEventListener('change', e => {
             state.type = e.target.value;
             loadRegles();
         });
-        $('#filter-actif').addEventListener('change', e => {
+
+        $('#filter-actif')?.addEventListener('change', e => {
             state.actif = e.target.value;
             loadRegles();
         });
-        $('#btn-refresh').addEventListener('click', loadRegles);
-        $('#btn-create').addEventListener('click', openCreate);
 
-        // Changement partenaire dans le modal → recharge produits
-        $('#partenaire_id').addEventListener('change', e => {
-            loadProduitsPourPartenaire(e.target.value);
+        $('#btn-refresh')?.addEventListener('click', loadRegles);
+        $('#btn-create')?.addEventListener('click', openCreate);
+
+        // ⚠️ Type produit → recharge le select
+        $('#add-type-produit')?.addEventListener('change', e => {
+            loadProduitsSelect(e.target.value);
         });
 
-        // Actions table (délégation)
+        // ⚠️ Partenaire → recharge le select
+        $('#partenaire_id')?.addEventListener('change', () => {
+            const type = $('#add-type-produit').value || 'STOCK';
+            loadProduitsSelect(type);
+        });
+
+        // Ajout produit au panier
+        $('#btn-add-produit')?.addEventListener('click', ajouterProduit);
+
         document.addEventListener('click', async e => {
             const btn = e.target.closest('[data-action]');
             if (!btn) return;
@@ -252,83 +318,75 @@
             if (action === 'toggle') return toggleActif(parseInt(id), actif === '1');
         });
 
-        // Submit
-        $('#regle-form').addEventListener('submit', onSubmit);
+        $('#regle-form')?.addEventListener('submit', onSubmit);
 
-        // Modals
         $$('[data-close-modal]').forEach(b => b.addEventListener('click', () => UI.closeModal('regle-modal')));
-        $('#regle-modal').addEventListener('click', e => {
+        $('#regle-modal')?.addEventListener('click', e => {
             if (e.target.id === 'regle-modal') UI.closeModal('regle-modal');
         });
     }
 
-    // ─────────────────────────────────────────────────────────
-    // CRUD — CREATE
-    // ─────────────────────────────────────────────────────────
+    // ═══════════════════════════════════════════════════════════
+    // MODAL — CREATE
+    // ═══════════════════════════════════════════════════════════
     function openCreate() {
         $('#modal-title').textContent = 'Nouvelle règle KYC';
         $('#regle-form').reset();
         $('#regle-id').value = '';
-
-        // Déverrouiller les champs (au cas où on vient d'un edit)
         $('#partenaire_id').disabled = false;
-        $('#produit_dsa_id').disabled = false;
         $('#type_document').disabled = false;
-
-        // Valeurs par défaut
         $('#obligatoire').checked = true;
         $('#actif').checked = true;
-        $('#produit_dsa_id').innerHTML = '<option value="">Tous les produits (règle globale)</option>';
+        produitsSelectionnes = [];
+        renderProduitsList();
 
-        // Pré-sélection du filtre partenaire si actif
+        $('#add-type-produit').value = 'STOCK';
+        $('#add-produit-id').innerHTML = '<option value="">— Sélectionner un produit —</option>';
+
+        // ⚠️ Si filtre partenaire actif, pré-sélectionner et charger
         if (state.partenaire_id) {
             $('#partenaire_id').value = state.partenaire_id;
-            loadProduitsPourPartenaire(state.partenaire_id);
+            setTimeout(() => loadProduitsSelect('STOCK'), 150);
         }
 
         UI.openModal('regle-modal');
     }
 
-    // ─────────────────────────────────────────────────────────
-    // CRUD — EDIT
-    // ─────────────────────────────────────────────────────────
+    // ═══════════════════════════════════════════════════════════
+    // MODAL — EDIT
+    // ═══════════════════════════════════════════════════════════
     async function openEdit(id) {
         const res = await API.get('/dsa/regles-kyc');
-        if (!res.ok) { UI.toast('danger', 'Erreur de chargement'); return; }
-
+        if (!res.ok) return;
         const items = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
         const r = items.find(x => x.id === id);
-        if (!r) { UI.toast('danger', 'Règle introuvable'); return; }
+        if (!r) return;
 
-        $('#modal-title').textContent = 'Modifier la règle KYC';
+        $('#modal-title').textContent = 'Modifier la règle';
         $('#regle-id').value = r.id;
-
-        // Partenaire
         $('#partenaire_id').value = r.partenaire_id;
-
-        // Produits du partenaire, puis sélection
-        await loadProduitsPourPartenaire(r.partenaire_id);
-        $('#produit_dsa_id').value = r.produit_dsa_id ?? '';
-
-        // Type de document
         $('#type_document').value = r.type_document;
-
-        // Autres champs
         $('#validite_jours').value = r.validite_jours ?? '';
         $('#obligatoire').checked = !!r.obligatoire;
         $('#actif').checked = !!r.actif;
 
-        // Champs verrouillés en édition (backend ne les accepte pas dans update())
+        produitsSelectionnes = (r.produits_resolus || []).map(p => ({
+            type: p.type_produit,
+            id: p.id,
+            nom: p.nom,
+            code: p.code,
+        }));
+        renderProduitsList();
+
         $('#partenaire_id').disabled = true;
-        $('#produit_dsa_id').disabled = true;
         $('#type_document').disabled = true;
 
         UI.openModal('regle-modal');
     }
 
-    // ─────────────────────────────────────────────────────────
+    // ═══════════════════════════════════════════════════════════
     // SUBMIT
-    // ─────────────────────────────────────────────────────────
+    // ═══════════════════════════════════════════════════════════
     async function onSubmit(e) {
         e.preventDefault();
         const id = $('#regle-id').value;
@@ -340,14 +398,15 @@
                 obligatoire:    $('#obligatoire').checked,
                 validite_jours: $('#validite_jours').value || null,
                 actif:          $('#actif').checked,
+                produits:       produitsSelectionnes.map(p => ({ type: p.type, id: p.id })),
             }
             : {
                 partenaire_id:  $('#partenaire_id').value,
-                produit_dsa_id: $('#produit_dsa_id').value || null,
                 type_document:  $('#type_document').value,
                 obligatoire:    $('#obligatoire').checked,
                 validite_jours: $('#validite_jours').value || null,
                 actif:          $('#actif').checked,
+                produits:       produitsSelectionnes.map(p => ({ type: p.type, id: p.id })),
             };
 
         UI.setLoading(btn, true);
@@ -361,22 +420,19 @@
             UI.closeModal('regle-modal');
             loadRegles();
         } else {
-            const errs = res.data?.errors || res.data?.error || res.data?.message;
-            if (typeof errs === 'object') UI.toast('danger', Object.values(errs).flat().join(' · '));
-            else UI.toast('danger', errs || 'Erreur');
+            const errs = res.data?.errors || res.data?.message;
+            UI.toast('danger', typeof errs === 'object' ? Object.values(errs).flat().join(' · ') : (errs || 'Erreur'));
         }
     }
 
-    // ─────────────────────────────────────────────────────────
+    // ═══════════════════════════════════════════════════════════
     // TOGGLE ACTIF
-    // ─────────────────────────────────────────────────────────
+    // ═══════════════════════════════════════════════════════════
     async function toggleActif(id, actifActuel) {
         const res = await API.put('/dsa/regles-kyc/' + id, { actif: !actifActuel });
         if (res.ok) {
-            UI.toast('success', !actifActuel ? 'Règle activée' : 'Règle désactivée');
+            UI.toast('success', !actifActuel ? 'Activée' : 'Désactivée');
             loadRegles();
-        } else {
-            UI.toast('danger', res.data?.error || 'Erreur');
         }
     }
 

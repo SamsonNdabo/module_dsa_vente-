@@ -42,3 +42,7 @@ Route::get('/objectifs-agent/{campagneId}/{agentId}',fn($campagneId, $agentId) =
 Route::get('/campagnes/{id}/objectifs-agents',fn($id) => view('campagnes.objectifs_agents', ['campagneId' => (int) $id])
 )->whereNumber('id')->name('campagnes.objectifs-agents');
 Route::get('/campagnes/{id}/objectifs-mesurables',fn($id) => view('campagnes.objectifs_mesurables', ['campagneId' => (int) $id]))->whereNumber('id')->name('campagnes.objectifs-mesurables');
+
+// 🆕 Souscription client
+Route::get('/souscriptions', fn() => view('souscriptions.index'))->name('souscriptions.index');
+Route::get('/stock-dsa', fn() => view('stock_dsa.index'))->name('stock_dsa.index');

@@ -62,7 +62,7 @@
                 <thead class="bg-gray-50 border-b border-gray-200">
                     <tr class="text-left text-xs uppercase tracking-wider text-gray-600 font-bold">
                         <th class="px-4 py-3">Partenaire</th>
-                        <th class="px-4 py-3">Produit DSA</th>
+                        <th class="px-4 py-3">Produits concernés</th>
                         <th class="px-4 py-3">Type de document</th>
                         <th class="px-4 py-3">Obligatoire</th>
                         <th class="px-4 py-3">Validité (jours)</th>

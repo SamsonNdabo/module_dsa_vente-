@@ -27,6 +27,8 @@ use App\Http\Controllers\Dsa\ObjectifMesurableController;
 use App\Http\Controllers\Dsa\DemandeController;
 use App\Http\Controllers\Dsa\CampagneObjectifController;
 use App\Http\Controllers\Dsa\CampagneObjectifAgentController;
+use App\Http\Controllers\Dsa\SouscriptionController;
+use App\Http\Controllers\Dsa\ProduitEpargneController;
 
 // ============================================================
 // ROUTE DE TEST
@@ -168,9 +170,16 @@ Route::middleware('auth:sanctum')->prefix('devises')->group(function () {
 // ============================================================
 Route::middleware('auth:sanctum')->prefix('dsa')->group(function () {
     Route::get('regles-kyc',      [RegleKycPartenaireController::class, 'index']);
+    Route::get('/produits-epargne', [ProduitEpargneController::class, 'index']);
+    Route::get('/souscriptions/produits', [SouscriptionController::class, 'produits']);
+    Route::get('/clients/{clientId}/souscriptions-eligibles', [SouscriptionController::class, 'eligibles']);
+    Route::post('/souscriptions/{id}/finaliser', [SouscriptionController::class, 'finaliser']);
     Route::post('regles-kyc',     [RegleKycPartenaireController::class, 'store']);
     Route::put('regles-kyc/{id}', [RegleKycPartenaireController::class, 'update']);
+    Route::post('/souscriptions', [SouscriptionController::class, 'store']);
+    
 });
+
 
 // ============================================================
 // CLIENTS DSA

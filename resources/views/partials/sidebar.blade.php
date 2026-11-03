@@ -109,28 +109,43 @@
                 <i class="fas fa-tasks w-5 text-center"></i>
                 <span>Demandes</span>
             </a>
+            
+            <a href="{{ url('/stock-dsa') }}"
+               class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium mb-1 transition
+                      {{ request()->is('stock-dsa*') ? 'bg-gradient-to-r from-indigo-600 to-indigo-800 text-white shadow-lg shadow-indigo-500/30' : 'hover:bg-white/5 hover:text-white' }}">
+                <i class="fas fa-boxes w-5 text-center"></i>
+                <span>Stock DSA</span>
+            </a>
+
+            {{-- 🆕 Souscription client --}}
+            <a href="{{ url('/souscriptions') }}"
+               class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium mb-1 transition
+                      {{ request()->is('souscriptions*') ? 'bg-gradient-to-r from-indigo-600 to-indigo-800 text-white shadow-lg shadow-indigo-500/30' : 'hover:bg-white/5 hover:text-white' }}">
+                <i class="fas fa-shopping-basket w-5 text-center"></i>
+                <span>Souscription</span>
+            </a>
 
             {{-- Pilotage commercial --}}
-            <a href="{{ url('/campagnes') }}"
+            <!-- <a href="{{ url('/campagnes') }}"
                class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium mb-1 transition
                       {{ request()->is('campagnes*') ? 'bg-gradient-to-r from-indigo-600 to-indigo-800 text-white shadow-lg shadow-indigo-500/30' : 'hover:bg-white/5 hover:text-white' }}">
                 <i class="fas fa-bullhorn w-5 text-center"></i>
                 <span>Campagnes</span>
-            </a>
-            <a href="{{ url('/objectifs') }}"
+            </a> -->
+            <!-- <a href="{{ url('/objectifs') }}"
                class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium mb-1 transition
                       {{ request()->is('objectifs*') ? 'bg-gradient-to-r from-indigo-600 to-indigo-800 text-white shadow-lg shadow-indigo-500/30' : 'hover:bg-white/5 hover:text-white' }}">
                 <i class="fas fa-bullseye w-5 text-center"></i>
                 <span>Objectifs mesurables</span>
-            </a>
+            </a> -->
 
             {{-- Catalogue --}}
-            <a href="{{ url('/produits-dsa') }}"
+            <!-- <a href="{{ url('/produits-dsa') }}"
                class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium mb-1 transition
                       {{ request()->is('produits-dsa*') ? 'bg-gradient-to-r from-indigo-600 to-indigo-800 text-white shadow-lg shadow-indigo-500/30' : 'hover:bg-white/5 hover:text-white' }}">
                 <i class="fas fa-box-open w-5 text-center"></i>
                 <span>Produits DSA</span>
-            </a>
+            </a> -->
             <a href="{{ url('/partenaires') }}"
                class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium mb-1 transition
                       {{ request()->is('partenaires*') ? 'bg-gradient-to-r from-indigo-600 to-indigo-800 text-white shadow-lg shadow-indigo-500/30' : 'hover:bg-white/5 hover:text-white' }}">

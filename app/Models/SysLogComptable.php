@@ -136,7 +136,7 @@ class SysLogComptable extends Model
             'connexion' => '🔑',
             'deconnexion' => '🚪',
             'creation_ecriture' => '📝',
-            'validation_ecriture' => '✅',
+            'validation_ecriture' => '',
             'rejet_ecriture' => '❌',
             'cloture_periode' => '🔒',
             'nettoyage_notifications' => '🧹',

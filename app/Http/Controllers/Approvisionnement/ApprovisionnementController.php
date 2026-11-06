@@ -10,7 +10,7 @@ use App\Models\Succursale;
 use App\Models\MouvementStock;
 use App\Models\Produit;
 use App\Models\ProduitImei;
-use App\Services\ApprovisionnementService; // ✅ NOUVEAU
+use App\Services\ApprovisionnementService; //  NOUVEAU
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -21,7 +21,7 @@ class ApprovisionnementController extends Controller
 {
     use Notifiable;
 
-    protected ApprovisionnementService $approvisionnementService; // ✅ NOUVEAU
+    protected ApprovisionnementService $approvisionnementService; //  NOUVEAU
 
     public function __construct(ApprovisionnementService $approvisionnementService)
     {
@@ -160,7 +160,7 @@ class ApprovisionnementController extends Controller
         ];
     
         foreach ($demande->lignes as $ligne) {
-            // ✅ Si le produit ne gère pas les IMEI, on passe
+            //  Si le produit ne gère pas les IMEI, on passe
             if (!$ligne->produit->gere_imei) {
                 $result['data']['lignes'][] = [
                     'ligne_id' => $ligne->id,
@@ -173,20 +173,20 @@ class ApprovisionnementController extends Controller
                 continue;
             }
     
-            // ✅ Récupérer les IMEI EN_STOCK dans la succursale source
-            // ✅ Avec filtre sur le statut du lot = ACTIF
+            //  Récupérer les IMEI EN_STOCK dans la succursale source
+            //  Avec filtre sur le statut du lot = ACTIF
             $imeisDisponibles = ProduitImei::where('produit_id', $ligne->produit_id)
                 ->where('succursale_id', $demande->source_decidee_id)
                 ->where('statut', ProduitImei::STATUT_EN_STOCK)
                 ->whereHas('lotStock', function ($query) {
-                    $query->where('statut', 'ACTIF'); // ✅ Filtrer les lots ACTIFS
+                    $query->where('statut', 'ACTIF'); //  Filtrer les lots ACTIFS
                 })
                 ->with('lotStock')
                 ->orderBy('lot_stock_id')  // FIFO : les plus anciens lots d'abord
                 ->orderBy('created_at')
                 ->get();
     
-            // ✅ Vérifier si des IMEI sont déjà sélectionnés
+            //  Vérifier si des IMEI sont déjà sélectionnés
             $imeisSelectionnes = $ligne->metadata['imeis_selectionnes'] ?? [];
     
             $result['data']['lignes'][] = [
@@ -203,7 +203,7 @@ class ApprovisionnementController extends Controller
                         'numero_serie' => $imei->numero_serie,
                         'lot_id' => $imei->lot_stock_id,
                         'lot_numero' => $imei->lotStock?->numero_lot,
-                        'lot_statut' => $imei->lotStock?->statut, // ✅ Ajout du statut du lot
+                        'lot_statut' => $imei->lotStock?->statut, //  Ajout du statut du lot
                         'prix_achat' => $imei->prix_achat,
                         'statut' => $imei->statut,
                         'est_sous_garantie' => $imei->est_sous_garantie,
@@ -259,7 +259,7 @@ class ApprovisionnementController extends Controller
             ], 422);
         }
 
-        // ✅ Valider les sélections IMEI optionnelles
+        //  Valider les sélections IMEI optionnelles
         $validator = Validator::make($request->all(), [
             'imei_selections' => 'nullable|array',
             'imei_selections.*' => 'nullable|array',
@@ -273,10 +273,10 @@ class ApprovisionnementController extends Controller
             ], 422);
         }
 
-        // ✅ Récupérer les sélections IMEI optionnelles
+        //  Récupérer les sélections IMEI optionnelles
         $imeiSelections = $request->input('imei_selections', null);
 
-        // ✅ VÉRIFICATION IMEI via le service (avec sélection optionnelle)
+        //  VÉRIFICATION IMEI via le service (avec sélection optionnelle)
         $result = $this->approvisionnementService->preparer($demande, $imeiSelections);
 
         if (!$result['success']) {
@@ -504,7 +504,7 @@ class ApprovisionnementController extends Controller
         }
 
         try {
-            // ✅ Utiliser le service pour l'arrivée intermédiaire
+            //  Utiliser le service pour l'arrivée intermédiaire
             $this->approvisionnementService->receptionnerIntermediaire($demande, $user->id);
 
             $this->notifierArriveeIntermediaire($demande, $user);
@@ -553,7 +553,7 @@ class ApprovisionnementController extends Controller
         }
 
         try {
-            // ✅ Utiliser le service pour le départ intermédiaire
+            //  Utiliser le service pour le départ intermédiaire
             $this->approvisionnementService->expedierIntermediaire($demande, $user->id);
 
             $this->notifierDepartIntermediaire($demande, $user);
@@ -853,7 +853,7 @@ class ApprovisionnementController extends Controller
         }
 
         try {
-            // ✅ Utiliser le service pour l'annulation (libère les IMEI)
+            //  Utiliser le service pour l'annulation (libère les IMEI)
             $this->approvisionnementService->annuler($demande, $request->motif);
 
             $this->notifierDemandeAnnulee($demande, $user, $request->motif);
@@ -1023,7 +1023,7 @@ class ApprovisionnementController extends Controller
 
         foreach ($demande->lignes as $ligne) {
             $stock = $stocks->get($ligne->produit_id);
-            // ✅ Utilisation de la méthode métier
+            //  Utilisation de la méthode métier
             $stockDisponible = $stock ? $stock->stockDisponible() : 0;
 
             if ($stockDisponible < $ligne->quantite_demandee) {
@@ -1077,7 +1077,7 @@ class ApprovisionnementController extends Controller
                     ->first();
     
                 if ($stock && $stock->quantite_reserve >= $ligne->quantite_envoyee) {
-                    // ✅ Utiliser libererReservation()
+                    //  Utiliser libererReservation()
                     $stock->libererReservation($ligne->quantite_envoyee);
                     // Mettre à jour la ligne
                     $ligne->update(['quantite_envoyee' => 0]);
@@ -1326,7 +1326,7 @@ private function traiterReception(Approvisionnement $demande, Request $request, 
         $this->notifierDestinatairesSpecifiques([
             'destinataires' => ['type' => 'role', 'code' => 'CHEF_OPERATIONS'],
             'type' => 'DEMANDE_APPROVISIONNEMENT',
-            'titre' => "🆕 Demande en attente de validation",
+            'titre' => " Demande en attente de validation",
             'message' => "Demande #{$demande->reference} - Source: " . ($demande->source_succursale->nom ?? 'À définir') . " → Destination: {$demande->destinationSuccursale->nom}",
             'donnees' => ['demande_id' => $demande->id, 'reference' => $demande->reference],
             'priorite' => 'HAUTE'
@@ -1338,7 +1338,7 @@ private function traiterReception(Approvisionnement $demande, Request $request, 
         $this->notifierDestinatairesSpecifiques([
             'destinataires' => ['type' => 'role', 'code' => 'CHEF_AGENCE'],
             'type' => 'APPROVISIONNEMENT_VALIDE',
-            'titre' => "✅ Demande préparée",
+            'titre' => " Demande préparée",
             'message' => "La demande #{$demande->reference} a été préparée par {$user->nom_complet}",
             'donnees' => [
                 'demande_id' => $demande->id,
@@ -1409,7 +1409,7 @@ private function traiterReception(Approvisionnement $demande, Request $request, 
             $this->notifierDestinatairesSpecifiques([
                 'destinataires' => ['type' => 'utilisateur', 'id' => $demande->expediteur_id],
                 'type' => 'TRANSFERT_RECU',
-                'titre' => "✅ {$demande->type_demande} réceptionné avec succès",
+                'titre' => " {$demande->type_demande} réceptionné avec succès",
                 'message' => "Le {$demande->type_demande} #{$demande->reference} a été réceptionné par {$user->nom_complet}",
                 'donnees' => [
                     'demande_id' => $demande->id,
@@ -1424,7 +1424,7 @@ private function traiterReception(Approvisionnement $demande, Request $request, 
         $this->notifierDestinatairesSpecifiques([
             'destinataires' => ['type' => 'role', 'code' => 'CHEF_AGENCE'],
             'type' => 'TRANSFERT_RECU',
-            'titre' => "✅ {$demande->type_demande} complété",
+            'titre' => " {$demande->type_demande} complété",
             'message' => "{$demande->type_demande} #{$demande->reference} réceptionné par {$demande->destinationSuccursale->nom}",
             'donnees' => ['demande_id' => $demande->id, 'reference' => $demande->reference],
             'priorite' => 'NORMALE'

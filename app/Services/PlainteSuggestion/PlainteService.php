@@ -12,36 +12,58 @@ class PlainteService
 {
     public function lister(array $filtres = [], int $perPage = 15): LengthAwarePaginator
     {
-        $query = Plainte::with([
-            'client',
-            'utilisateur',
-            'piecesJointes.uploader',
-            'historiques.utilisateur',
-            'historiques.ancienUtilisateur',
-            'historiques.nouveauUtilisateur',
-        ])->withCount(['piecesJointes', 'historiques']);
-
-        $query->when($filtres['statut'] ?? null,         fn ($q, $v) => $q->where('statut', $v))
-              ->when($filtres['categorie'] ?? null,      fn ($q, $v) => $q->where('categorie', $v))
-              ->when($filtres['priorite'] ?? null,       fn ($q, $v) => $q->where('priorite', $v))
-              ->when($filtres['zone'] ?? null,           fn ($q, $v) => $q->where('zone', $v))
-              ->when($filtres['utilisateur_id'] ?? null, fn ($q, $v) => $q->where('utilisateur_id', $v))
-              ->when($filtres['client_id'] ?? null,      fn ($q, $v) => $q->where('client_id', $v))
-              ->when($filtres['partenaire'] ?? null,     fn ($q, $v) => $q->whereHas(
-                    'client', fn ($qq) => $qq->where('categorie_client', $v)))
-              ->when($filtres['date_debut'] ?? null,     fn ($q, $v) => $q->whereDate('created_at', '>=', $v))
-              ->when($filtres['date_fin'] ?? null,       fn ($q, $v) => $q->whereDate('created_at', '<=', $v))
-              ->when($filtres['recherche'] ?? null,      function ($q, $v) {
-                    $q->where(function ($sub) use ($v) {
-                        $sub->where('reference', 'like', "%{$v}%")
-                            ->orWhere('objet', 'like', "%{$v}%")
-                            ->orWhere('description', 'like', "%{$v}%");
-                    });
-              });
-
-        $query->orderBy($filtres['tri'] ?? 'created_at', $filtres['ordre'] ?? 'desc');
-
-        return $query->paginate($filtres['per_page'] ?? $perPage);
+        return Plainte::query()
+            // 1. On ne sélectionne QUE les colonnes utiles (pas de categorie_label)
+            ->select([
+                'plaintes.id',
+                'plaintes.reference',
+                'plaintes.client_id',
+                'plaintes.utilisateur_id',
+                'plaintes.objet',
+                'plaintes.description',
+                'plaintes.priorite',
+                'plaintes.statut',
+                'plaintes.zone',
+                'plaintes.categorie',
+                'plaintes.created_at',
+            ])
+            // 2. On charge les relations avec les VRAIES colonnes de votre BDD
+            ->with([
+                'client:id,nom_complet,categorie_client', // <-- Uniquement categorie_client
+                'utilisateur:id,nom_complet',
+            ])
+            // 3. On compte les relations (pour les badges 📎 et 🕐)
+            ->withCount(['piecesJointes', 'historiques'])
+            
+            // 4. Filtres
+            ->when($filtres['statut'] ?? null,         fn ($q, $v) => $q->where('plaintes.statut', $v))
+            ->when($filtres['categorie'] ?? null,      fn ($q, $v) => $q->where('plaintes.categorie', $v))
+            ->when($filtres['priorite'] ?? null,       fn ($q, $v) => $q->where('plaintes.priorite', $v))
+            ->when($filtres['zone'] ?? null,           fn ($q, $v) => $q->where('plaintes.zone', $v))
+            ->when($filtres['utilisateur_id'] ?? null, fn ($q, $v) => $q->where('plaintes.utilisateur_id', $v))
+            ->when($filtres['client_id'] ?? null,      fn ($q, $v) => $q->where('plaintes.client_id', $v))
+            ->when($filtres['partenaire'] ?? null,     fn ($q, $v) => $q->whereHas(
+                'client',
+                fn ($qq) => $qq->where('categorie_client', $v)
+            ))
+            ->when($filtres['date_debut'] ?? null,     fn ($q, $v) => $q->whereDate('plaintes.created_at', '>=', $v))
+            ->when($filtres['date_fin'] ?? null,       fn ($q, $v) => $q->whereDate('plaintes.created_at', '<=', $v))
+            ->when($filtres['annee'] ?? null,          function ($q, $v) {
+                $q->whereYear('plaintes.created_at', (int) $v);
+            })
+            ->when($filtres['recherche'] ?? null,      function ($q, $v) {
+                $q->where(function ($sub) use ($v) {
+                    $sub->where('plaintes.reference', 'like', "%{$v}%")
+                        ->orWhere('plaintes.objet', 'like', "%{$v}%")
+                        ->orWhere('plaintes.description', 'like', "%{$v}%");
+                });
+            })
+            
+            // 5. Tri sécurisé
+            ->orderBy('plaintes.' . ($filtres['tri'] ?? 'created_at'), $filtres['ordre'] ?? 'desc')
+            
+            // 6. Pagination
+            ->paginate($filtres['per_page'] ?? $perPage);
     }
 
     public function trouver(int $id): Plainte
@@ -91,18 +113,25 @@ class PlainteService
         Plainte $plainte,
         Utilisateur $utilisateur,
         ?string $commentaire = null,
-        ?int $auteurId = null
+        ?int $auteurId = null,
+        ?string $priorite = null
     ): Plainte {
-        return DB::transaction(function () use ($plainte, $utilisateur, $commentaire, $auteurId) {
+        return DB::transaction(function () use ($plainte, $utilisateur, $commentaire, $auteurId, $priorite) {
             $ancienId = $plainte->utilisateur_id;
 
-            $plainte->update([
+            $updates = [
                 'utilisateur_id'   => $utilisateur->id,
                 'date_affectation' => now(),
                 'statut'           => $plainte->statut === Plainte::STATUT_NOUVELLE
                                         ? Plainte::STATUT_EN_COURS
                                         : $plainte->statut,
-            ]);
+            ];
+
+            if ($priorite) {
+                $updates['priorite'] = $priorite;
+            }
+
+            $plainte->update($updates);
 
             PlainteHistorique::create([
                 'plainte_id'             => $plainte->id,
@@ -152,22 +181,86 @@ class PlainteService
         });
     }
 
+    // ============================================================
+    // KPI PRINCIPAL
+    // ============================================================
     public function kpi(array $filtres = []): array
     {
-        $base = Plainte::query();
-
-        $base->when($filtres['date_debut'] ?? null, fn ($q, $v) => $q->whereDate('created_at', '>=', $v))
-             ->when($filtres['date_fin'] ?? null,   fn ($q, $v) => $q->whereDate('created_at', '<=', $v))
-             ->when($filtres['zone'] ?? null,       fn ($q, $v) => $q->where('zone', $v));
+        $base = Plainte::query()
+            ->when(
+                !empty($filtres['annee']),
+                fn ($q) => $q->whereYear('plaintes.created_at', (int) $filtres['annee'])
+            )
+            ->when(
+                !empty($filtres['date_debut']) && $filtres['date_debut'] !== 'null',
+                fn ($q) => $q->whereDate('plaintes.created_at', '>=', $filtres['date_debut'])
+            )
+            ->when(
+                !empty($filtres['date_fin']) && $filtres['date_fin'] !== 'null',
+                fn ($q) => $q->whereDate('plaintes.created_at', '<=', $filtres['date_fin'])
+            )
+            ->when(
+                !empty($filtres['zone']) && $filtres['zone'] !== 'null',
+                fn ($q) => $q->where('plaintes.zone', $filtres['zone'])
+            );
 
         return [
-            'global'         => $this->agreger($base),
-            'par_zone'       => $this->agregerPar($base, 'zone'),
-            'par_agent'      => $this->agregerParAgent($base),
-            'par_partenaire' => $this->agregerParPartenaire($base),
-            'par_statut'     => $this->agregerPar($base, 'statut'),
-            'par_categorie'  => $this->agregerPar($base, 'categorie'),
+            'global'             => $this->agreger($base),
+            'par_zone'           => $this->agregerPar($base, 'zone'),
+            'par_agent'          => $this->agregerParAgent($base),
+            'par_partenaire'     => $this->agregerParPartenaire($base),
+            'par_statut'         => $this->agregerPar($base, 'statut'),
+            'par_categorie'      => $this->agregerPar($base, 'categorie'),
+            'par_priorite'       => $this->agregerParPriorite($base),
+            'par_mois'           => $this->agregerParMois($base),
+            'dernieres_plaintes' => $this->dernieresPlaintes($filtres),
         ];
+    }
+
+    protected function dernieresPlaintes(array $filtres = [], int $limite = 8): array
+    {
+        return Plainte::with(['client:id,nom_complet', 'utilisateur:id,nom_complet'])
+            ->select([
+                'plaintes.id',
+                'plaintes.reference',
+                'plaintes.objet',
+                'plaintes.zone',
+                'plaintes.statut',
+                'plaintes.priorite',
+                'plaintes.utilisateur_id',
+                'plaintes.created_at',
+            ])
+            ->when(
+                !empty($filtres['annee']),
+                fn ($q) => $q->whereYear('plaintes.created_at', (int) $filtres['annee'])
+            )
+            ->when(
+                !empty($filtres['date_debut']) && $filtres['date_debut'] !== 'null',
+                fn ($q) => $q->whereDate('plaintes.created_at', '>=', $filtres['date_debut'])
+            )
+            ->when(
+                !empty($filtres['date_fin']) && $filtres['date_fin'] !== 'null',
+                fn ($q) => $q->whereDate('plaintes.created_at', '<=', $filtres['date_fin'])
+            )
+            ->when(
+                !empty($filtres['zone']) && $filtres['zone'] !== 'null',
+                fn ($q) => $q->where('plaintes.zone', $filtres['zone'])
+            )
+            ->orderByDesc('plaintes.created_at')
+            ->limit($limite)
+            ->get()
+            ->map(fn ($p) => [
+                'id'         => $p->id,
+                'reference'  => $p->reference,
+                'objet'      => $p->objet,
+                'zone'       => $p->zone,
+                'statut'     => $p->statut,
+                'priorite'   => $p->priorite,
+                'client'     => $p->client?->nom_complet,
+                'agent'      => $p->utilisateur?->nom_complet,
+                'created_at' => $p->created_at?->toISOString(),
+            ])
+            ->toArray();
     }
 
     protected function agreger($query)
@@ -182,13 +275,69 @@ class PlainteService
 
     protected function agregerPar($query, string $colonne)
     {
-        return (clone $query)->selectRaw("
-            {$colonne},
-            COUNT(*) AS nombre_total,
-            ROUND(AVG(delai_resolution_heures), 2) AS delai_moyen_heures,
-            SUM(CASE WHEN statut IN ('NOUVELLE','EN_COURS') THEN 1 ELSE 0 END) AS ouvertes,
-            SUM(CASE WHEN statut IN ('RESOLUE','REJETEE') THEN 1 ELSE 0 END) AS cloturees
-        ")->whereNotNull($colonne)->groupBy($colonne)->get();
+        return (clone $query)
+            ->selectRaw("
+                {$colonne},
+                COUNT(*) AS nombre_total,
+                ROUND(AVG(delai_resolution_heures), 2) AS delai_moyen_heures,
+                SUM(CASE WHEN statut IN ('NOUVELLE','EN_COURS') THEN 1 ELSE 0 END) AS ouvertes,
+                SUM(CASE WHEN statut IN ('RESOLUE','REJETEE') THEN 1 ELSE 0 END) AS cloturees,
+                SUM(CASE WHEN statut = 'RESOLUE' THEN 1 ELSE 0 END) AS resolues,
+                SUM(CASE WHEN statut = 'REJETEE' THEN 1 ELSE 0 END) AS rejetees
+            ")
+            ->whereNotNull($colonne)
+            ->groupBy($colonne)
+            ->get();
+    }
+
+    protected function agregerParPriorite($query): array
+    {
+        return (clone $query)
+            ->select('plaintes.priorite', DB::raw('COUNT(*) as nombre_total'))
+            ->whereNotNull('plaintes.priorite')
+            ->groupBy('plaintes.priorite')
+            ->pluck('nombre_total', 'priorite')
+            ->toArray();
+    }
+
+    protected function agregerParMois($query): array
+    {
+        $parMois = [];
+        for ($m = 1; $m <= 12; $m++) {
+            $parMois[$m] = [
+                'nouvelles' => 0,
+                'en_cours'  => 0,
+                'resolues'  => 0,
+                'rejetees'  => 0,
+            ];
+        }
+
+        $rows = (clone $query)
+            ->selectRaw("
+                MONTH(plaintes.created_at) AS mois,
+                SUM(CASE WHEN plaintes.statut = 'NOUVELLE' THEN 1 ELSE 0 END) AS nouvelles,
+                SUM(CASE WHEN plaintes.statut = 'EN_COURS' THEN 1 ELSE 0 END) AS en_cours,
+                SUM(CASE WHEN plaintes.statut = 'RESOLUE'  THEN 1 ELSE 0 END) AS resolues,
+                SUM(CASE WHEN plaintes.statut = 'REJETEE'  THEN 1 ELSE 0 END) AS rejetees
+            ")
+            ->whereNotNull('plaintes.created_at')
+            ->groupBy(DB::raw('MONTH(plaintes.created_at)'))
+            ->orderBy(DB::raw('MONTH(plaintes.created_at)'))
+            ->get();
+
+        foreach ($rows as $r) {
+            $m = (int) $r->mois;
+            if ($m >= 1 && $m <= 12) {
+                $parMois[$m] = [
+                    'nouvelles' => (int) $r->nouvelles,
+                    'en_cours'  => (int) $r->en_cours,
+                    'resolues'  => (int) $r->resolues,
+                    'rejetees'  => (int) $r->rejetees,
+                ];
+            }
+        }
+
+        return $parMois;
     }
 
     protected function agregerParAgent($query)
@@ -201,7 +350,9 @@ class PlainteService
                 COUNT(plaintes.id) AS nombre_total,
                 ROUND(AVG(plaintes.delai_resolution_heures), 2) AS delai_moyen_heures,
                 SUM(CASE WHEN plaintes.statut IN ('NOUVELLE','EN_COURS') THEN 1 ELSE 0 END) AS ouvertes,
-                SUM(CASE WHEN plaintes.statut IN ('RESOLUE','REJETEE') THEN 1 ELSE 0 END) AS cloturees
+                SUM(CASE WHEN plaintes.statut IN ('RESOLUE','REJETEE') THEN 1 ELSE 0 END) AS cloturees,
+                SUM(CASE WHEN plaintes.statut = 'RESOLUE' THEN 1 ELSE 0 END) AS resolues,
+                SUM(CASE WHEN plaintes.statut = 'REJETEE' THEN 1 ELSE 0 END) AS rejetees
             ")
             ->whereNotNull('plaintes.utilisateur_id')
             ->groupBy('utilisateurs.id', 'utilisateurs.nom_complet')
@@ -217,7 +368,9 @@ class PlainteService
                 COUNT(plaintes.id) AS nombre_total,
                 ROUND(AVG(plaintes.delai_resolution_heures), 2) AS delai_moyen_heures,
                 SUM(CASE WHEN plaintes.statut IN ('NOUVELLE','EN_COURS') THEN 1 ELSE 0 END) AS ouvertes,
-                SUM(CASE WHEN plaintes.statut IN ('RESOLUE','REJETEE') THEN 1 ELSE 0 END) AS cloturees
+                SUM(CASE WHEN plaintes.statut IN ('RESOLUE','REJETEE') THEN 1 ELSE 0 END) AS cloturees,
+                SUM(CASE WHEN plaintes.statut = 'RESOLUE' THEN 1 ELSE 0 END) AS resolues,
+                SUM(CASE WHEN plaintes.statut = 'REJETEE' THEN 1 ELSE 0 END) AS rejetees
             ")
             ->groupBy('clients.categorie_client')
             ->get();

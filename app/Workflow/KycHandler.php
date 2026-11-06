@@ -2,12 +2,12 @@
 
 namespace App\Workflow;
 
-use App\Models\Demande;
+use App\Models\Kyc\Demande;
 use App\Models\Utilisateur;
-use App\Services\ConsentementService;
-use App\Services\KycService;
-use App\Services\RegleKycService;
-use App\Services\WorkflowService;
+use App\Services\Client_Kyc\ConsentementService;
+use App\Services\Client_Kyc\KycService;
+use App\Services\Client_Kyc\RegleKycService;
+use App\Services\Client_Kyc\WorkflowService;
 use Illuminate\Validation\ValidationException;
 
 class KycHandler implements DemandeHandler
@@ -15,12 +15,11 @@ class KycHandler implements DemandeHandler
     public function avant(Demande $demande, string $cible, ?Utilisateur $acteur, array $donnees): void
     {
         if ($cible === 'SOUMIS') {
-            // 1. Consentement KYC_DATA obligatoire pour soumettre
             $client = $demande->client;
 
             if (! $client) {
                 throw ValidationException::withMessages([
-                    'client_id' => 'Le client associé à cette demande est introuvable. La demande est obsolète (créée avant la fusion clients_dsa → clients).',
+                    'client_id' => 'Le client associé à cette demande est introuvable.',
                 ]);
             }
 
@@ -31,7 +30,6 @@ class KycHandler implements DemandeHandler
                 ]);
             }
 
-            // 2. Contrôle minimal du dossier (pièces + signature)
             $manquants = app(KycService::class)->controleSoumission($demande->kycDossier);
 
             if (! empty($manquants)) {
@@ -46,7 +44,6 @@ class KycHandler implements DemandeHandler
     {
         $decision = in_array($demande->statut, ['VALIDE', 'REJETE', 'A_CORRIGER'], true);
 
-        // 1. Mise à jour du dossier KYC
         if ($demande->kycDossier) {
             $demande->kycDossier->update([
                 'statut'       => $demande->statut,
@@ -55,12 +52,10 @@ class KycHandler implements DemandeHandler
             ]);
         }
 
-        // 2. Mise à jour du statut KYC du client (denormalized)
         if ($demande->client) {
             $demande->client->update(['kyc_statut' => $demande->statut]);
         }
 
-        // 3. Auto-validation des pièces EN_ATTENTE si dossier VALIDE
         if ($demande->statut === 'VALIDE' && $demande->kycDossier) {
             $demande->kycDossier->pieces()
                 ->where('statut', 'EN_ATTENTE')
@@ -70,13 +65,11 @@ class KycHandler implements DemandeHandler
                     'validee_par' => $acteur?->id,
                 ]);
 
-            // Faire avancer les demandes d'ouverture de compte en attente
             if ($demande->client_id) {
                 app(RegleKycService::class)->avancerDossiersEnAttente($demande->client_id);
             }
         }
 
-        // 4. Cascade REJET → rejeter les ouvertures de compte en attente
         if ($demande->statut === 'REJETE' && $demande->client_id) {
             $workflow = app(WorkflowService::class);
 
@@ -84,13 +77,7 @@ class KycHandler implements DemandeHandler
                 ->where('client_id', $demande->client_id)
                 ->where('statut', 'DOSSIER_SOUMIS')
                 ->get()
-                ->each(fn (Demande $c) => $workflow->transitionner(
-                    $c,
-                    'REJETE',
-                    'KYC rejeté',
-                    null,
-                    true
-                ));
+                ->each(fn (Demande $c) => $workflow->transitionner($c, 'REJETE', 'KYC rejeté', null, true));
         }
     }
 }

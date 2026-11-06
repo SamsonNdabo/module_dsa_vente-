@@ -36,11 +36,11 @@ trait FiltersComptables
 
     /**
      * Formate les infos période pour le JSON
-     * ✅ CORRIGÉ : Vérifie que $periode est bien un objet avant d'accéder à ses propriétés
+     *  CORRIGÉ : Vérifie que $periode est bien un objet avant d'accéder à ses propriétés
      */
     protected function formatPeriodeInfo($periode): ?array
     {
-        // ✅ Protection : si c'est un JsonResponse ou null, on retourne null
+        //  Protection : si c'est un JsonResponse ou null, on retourne null
         if (!$periode || !is_object($periode) || !isset($periode->id)) {
             return null;
         }

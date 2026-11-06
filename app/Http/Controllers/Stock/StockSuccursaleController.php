@@ -590,9 +590,9 @@ class StockSuccursaleController extends Controller
                     }
                 }
                 
-                // ✅ DÉBITER LA CAISSE (si l'achat est payé au comptant)
+                //  DÉBITER LA CAISSE (si l'achat est payé au comptant)
                 if ($prixAchat > 0 && $quantiteDisponible > 0) {
-                    // ✅ Arrondir le montant TTC à 2 décimales (arrondi monétaire standard)
+                    //  Arrondir le montant TTC à 2 décimales (arrondi monétaire standard)
                     $tauxTVA = $produit->tva ?? 16;
                     $montantTTC = round($prixAchat * $quantiteDisponible * (1 + ($tauxTVA / 100)), 2);
                     
@@ -695,7 +695,7 @@ class StockSuccursaleController extends Controller
     }
     
     /**
-     * ✅ DÉBITER LA CAISSE (diminuer l'argent) pour un achat
+     *  DÉBITER LA CAISSE (diminuer l'argent) pour un achat
      */
         private function debiterCaisse(StockSuccursale $stock, float $montant, $user): void
     {
@@ -713,7 +713,7 @@ class StockSuccursaleController extends Controller
             return;
         }
     
-        // ✅ Cast en int
+        //  Cast en int
         $utilisateurId = (int) $user->id;
         $deviseId = (int) ($stock->produit->devise_id ?? 2);
     
@@ -738,7 +738,7 @@ class StockSuccursaleController extends Controller
 
 
     /**
-     * ✅ CRÉER LES ÉCRITURES COMPTABLES POUR LE STOCK (COMME DANS RECEPTIONFOURNISSEURSERVICE)
+     *  CRÉER LES ÉCRITURES COMPTABLES POUR LE STOCK (COMME DANS RECEPTIONFOURNISSEURSERVICE)
      */
     private function creerEcrituresComptablesStock(
     StockSuccursale $stock,
@@ -2363,7 +2363,7 @@ class StockSuccursaleController extends Controller
                 $query->where('succursale_id', $user->succursale_id);
             }
 
-            // ✅ Statistiques en UNE SEULE REQUÊTE
+            //  Statistiques en UNE SEULE REQUÊTE
             $baseStats = (clone $query)->selectRaw("
                 COUNT(*) as total_produits,
                 SUM(CASE WHEN quantite_disponible <= 0 THEN 1 ELSE 0 END) as ruptures,
@@ -2372,13 +2372,13 @@ class StockSuccursaleController extends Controller
                 SUM(CASE WHEN is_depot = 0 THEN 1 ELSE 0 END) as total_points_vente
             ")->first();
 
-            // ✅ Valeur du stock - UNE SEULE REQUÊTE avec jointure
+            //  Valeur du stock - UNE SEULE REQUÊTE avec jointure
             $valeurStock = (clone $query)
                 ->join('produit', 'stock_succursale.produit_id', '=', 'produit.id')
                 ->select(DB::raw('SUM(stock_succursale.quantite_disponible * produit.prix_achat) as total'))
                 ->value('total') ?? 0;
 
-            // ✅ Valeur par type - UNE SEULE REQUÊTE
+            //  Valeur par type - UNE SEULE REQUÊTE
             $valeurParType = (clone $query)
                 ->join('produit', 'stock_succursale.produit_id', '=', 'produit.id')
                 ->select(
@@ -2389,7 +2389,7 @@ class StockSuccursaleController extends Controller
                 ->get()
                 ->keyBy('is_depot');
 
-            // ✅ Par succursale - UNE SEULE REQUÊTE
+            //  Par succursale - UNE SEULE REQUÊTE
             $parSuccursale = (clone $query)
                 ->select('succursale_id', DB::raw('count(*) as total'))
                 ->with(['succursale' => function($q) {

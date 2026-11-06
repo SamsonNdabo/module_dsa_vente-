@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use App\Events\EcritureComptableChanged;
-use App\Events\NotificationComptableEvent; // 🆕 Ajout
+use App\Events\NotificationComptableEvent; //  Ajout
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -112,7 +112,7 @@ class EcrituresComptable extends Model
                     'est_immobilisation' => $ecriture->estCompteImmobilisation(),
                 ]);
 
-                // 🆕 CRÉER UNE NOTIFICATION POUR L'UTILISATEUR
+                //  CRÉER UNE NOTIFICATION POUR L'UTILISATEUR
                 $ecriture->creerNotificationEcriture('created');
 
                 // Vérifier immobilisation
@@ -124,7 +124,7 @@ class EcrituresComptable extends Model
                         'libelle' => $ecriture->libelle,
                     ]);
 
-                    // 🆕 NOTIFICATION POUR IMMOBILISATION
+                    //  NOTIFICATION POUR IMMOBILISATION
                     $ecriture->creerNotificationImmobilisation();
                 }
             } catch (\Exception $e) {
@@ -147,7 +147,7 @@ class EcrituresComptable extends Model
                     'compte' => $ecriture->compte_numero
                 ]);
 
-                // 🆕 NOTIFICATION DE MODIFICATION
+                //  NOTIFICATION DE MODIFICATION
                 $ecriture->creerNotificationEcriture('updated');
             } catch (\Exception $e) {
                 Log::error('❌ Erreur broadcast modification écriture', [
@@ -169,7 +169,7 @@ class EcrituresComptable extends Model
                     'compte' => $ecriture->compte_numero
                 ]);
 
-                // 🆕 NOTIFICATION DE SUPPRESSION
+                //  NOTIFICATION DE SUPPRESSION
                 $ecriture->creerNotificationEcriture('deleted');
             } catch (\Exception $e) {
                 Log::error('❌ Erreur broadcast suppression écriture', [
@@ -352,7 +352,7 @@ class EcrituresComptable extends Model
     }
 
     // =========================================================================
-    // 🆕 MÉTHODES DE NOTIFICATIONS
+    //  MÉTHODES DE NOTIFICATIONS
     // =========================================================================
 
     /**
@@ -458,7 +458,7 @@ class EcrituresComptable extends Model
                 'metadata' => $data['metadata'] ?? null,
             ]);
 
-            // 🆕 Diffuser en temps réel via Reverb
+            //  Diffuser en temps réel via Reverb
             broadcast(new NotificationComptableEvent($notification, $this->id_utilisateur, 'created'))->toOthers();
 
             // Logger

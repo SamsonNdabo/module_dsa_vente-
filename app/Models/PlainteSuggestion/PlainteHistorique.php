@@ -13,21 +13,29 @@ class PlainteHistorique extends Model
 
     protected $table = 'plaintes_historiques';
 
-    // Historique = pas de updated_at
-    public $timestamps = false;
+    //  On garde created_at automatique, mais PAS updated_at
+    const UPDATED_AT = null;
 
+    //  Autoriser created_at dans le create()
     protected $fillable = [
-        'plainte_id', 'utilisateur_id', 'action',
-        'ancien_statut', 'nouveau_statut',
-        'ancien_utilisateur_id', 'nouveau_utilisateur_id',
-        'commentaire', 'created_at',
+        'plainte_id',
+        'utilisateur_id',
+        'action',
+        'ancien_statut',
+        'nouveau_statut',
+        'ancien_utilisateur_id',
+        'nouveau_utilisateur_id',
+        'commentaire',
+        'created_at',
     ];
 
     protected $casts = [
         'created_at' => 'datetime',
     ];
 
-    // Actions
+    // ==========================================================
+    // CONSTANTES D'ACTIONS
+    // ==========================================================
     public const ACTION_CREATION          = 'CREATION';
     public const ACTION_AFFECTATION       = 'AFFECTATION';
     public const ACTION_CHANGEMENT_STATUT = 'CHANGEMENT_STATUT';
@@ -35,9 +43,9 @@ class PlainteHistorique extends Model
     public const ACTION_RESOLUTION        = 'RESOLUTION';
     public const ACTION_REJET             = 'REJET';
 
-    // -------------------------
-    // Relations
-    // -------------------------
+    // ==========================================================
+    // RELATIONS
+    // ==========================================================
     public function plainte(): BelongsTo
     {
         return $this->belongsTo(Plainte::class, 'plainte_id');

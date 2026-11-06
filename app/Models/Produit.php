@@ -13,7 +13,6 @@ class Produit extends Model
     use HasFactory, SoftDeletes, Auditable;
 
     protected $table = 'produit';
-
     protected $primaryKey = 'id';
 
     protected $fillable = [
@@ -65,63 +64,22 @@ class Produit extends Model
     ];
 
     const TYPES_PRODUIT = [
-        'ELECTRONIQUE' => [
-            'label' => 'Électronique',
-            'gestion_imei' => true
-        ],
-        'ACCESSOIRE' => [
-            'label' => 'Accessoire',
-            'gestion_imei' => false
-        ],
-        'ALIMENTAIRE' => [
-            'label' => 'Alimentaire',
-            'gestion_imei' => false
-        ],
-        'STANDARD' => [
-            'label' => 'Standard',
-            'gestion_imei' => false
-        ],
-        'PRODUIT' => [
-            'label' => 'Produit',
-            'gestion_imei' => false
-        ],
-        'SERVICE' => [
-            'label' => 'Service',
-            'gestion_imei' => false
-        ],
-        'CONSOMMABLE' => [
-            'label' => 'Consommable',
-            'gestion_imei' => false
-        ],
-        'MATIERE_PREMIERE' => [
-            'label' => 'Matière première',
-            'gestion_imei' => false
-        ],
-        'PRODUIT_FINI' => [
-            'label' => 'Produit fini',
-            'gestion_imei' => false
-        ],
-        'SEMI_FINI' => [
-            'label' => 'Semi-fini',
-            'gestion_imei' => false
-        ],
-        'SOUS_TRAITANCE' => [
-            'label' => 'Sous-traitance',
-            'gestion_imei' => false
-        ],
-        'STOCKABLE' => [
-            'label' => 'Stockable',
-            'gestion_imei' => false
-        ],
-        'NUMERIQUE' => [
-            'label' => 'Numérique',
-            'gestion_imei' => false
-        ],
+        'ELECTRONIQUE' => ['label' => 'Électronique', 'gestion_imei' => true],
+        'ACCESSOIRE' => ['label' => 'Accessoire', 'gestion_imei' => false],
+        'ALIMENTAIRE' => ['label' => 'Alimentaire', 'gestion_imei' => false],
+        'STANDARD' => ['label' => 'Standard', 'gestion_imei' => false],
+        'PRODUIT' => ['label' => 'Produit', 'gestion_imei' => false],
+        'SERVICE' => ['label' => 'Service', 'gestion_imei' => false],
+        'CONSOMMABLE' => ['label' => 'Consommable', 'gestion_imei' => false],
+        'MATIERE_PREMIERE' => ['label' => 'Matière première', 'gestion_imei' => false],
+        'PRODUIT_FINI' => ['label' => 'Produit fini', 'gestion_imei' => false],
+        'SEMI_FINI' => ['label' => 'Semi-fini', 'gestion_imei' => false],
+        'SOUS_TRAITANCE' => ['label' => 'Sous-traitance', 'gestion_imei' => false],
+        'STOCKABLE' => ['label' => 'Stockable', 'gestion_imei' => false],
+        'NUMERIQUE' => ['label' => 'Numérique', 'gestion_imei' => false],
     ];
 
-    const TYPES_AVEC_IMEI = [
-        'ELECTRONIQUE'
-    ];
+    const TYPES_AVEC_IMEI = ['ELECTRONIQUE'];
 
     /*
     |--------------------------------------------------------------------------
@@ -132,11 +90,6 @@ class Produit extends Model
     public function categorie()
     {
         return $this->belongsTo(CategorieProduit::class, 'categorie_id');
-    }
-
-        public function produitDsa()
-    {
-        return $this->hasOne(ProduitDsa::class, 'produit_id');
     }
 
     public function devise()
@@ -162,6 +115,23 @@ class Produit extends Model
     public function lignesFacture()
     {
         return $this->hasMany(LigneFacture::class, 'produit_id');
+    }
+
+    // ✅ AJOUT 1 : Relation avec les Partenaires (Corrige l'erreur)
+    public function partenaires()
+    {
+        return $this->belongsToMany(
+            \App\Models\Partenaire\Partenaire::class, 
+            'partenaire_produits', 
+            'id_produit', 
+            'id_partenaire'
+        )->withPivot('type_produit', 'date_ajout', 'actif');
+    }
+
+    // ✅ AJOUT 2 : Relation avec les Campagnes (Utile pour l'historique)
+    public function campagneProduits()
+    {
+        return $this->hasMany(\App\Models\Campagne\CampagneProduit::class, 'id_produit');
     }
 
     /*
@@ -384,9 +354,6 @@ class Produit extends Model
         return $query->where('categorie_id', $categorieId);
     }
 
-    /**
-     * Scope pour les produits qui gèrent les IMEI
-     */
     public function scopeGereImei($query)
     {
         return $query->where('gere_imei', true);

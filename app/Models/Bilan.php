@@ -5,7 +5,7 @@ namespace App\Models;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
-use App\Traits\Auditable; // ✅ AJOUT
+use App\Traits\Auditable; //  AJOUT
 
 /**
  * Class Bilan
@@ -31,7 +31,7 @@ use App\Traits\Auditable; // ✅ AJOUT
  */
 class Bilan extends Model
 {
-    use Auditable; // ✅ AJOUT
+    use Auditable; //  AJOUT
 
     protected $table = 'bilans';
     

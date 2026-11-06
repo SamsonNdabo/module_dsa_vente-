@@ -89,7 +89,7 @@ class SuccursaleExchangeRateController extends Controller
 
         $taux = SuccursaleExchangeRate::create($data);
 
-        // ✅ NOTIFICATION AUX SUPER_ADMIN
+        //  NOTIFICATION AUX SUPER_ADMIN
         $this->notifierChangementTauxSuccursale($taux, $succursale, $ancien);
 
         return response()->json([
@@ -100,7 +100,7 @@ class SuccursaleExchangeRateController extends Controller
     }
 
     /**
-     * ✅ NOUVELLE MÉTHODE : Notifier les SUPER_ADMIN d'une demande de changement de taux pour succursale
+     *  NOUVELLE MÉTHODE : Notifier les SUPER_ADMIN d'une demande de changement de taux pour succursale
      */
     protected function notifierChangementTauxSuccursale($taux, $succursale, $ancien)
     {
@@ -285,7 +285,7 @@ class SuccursaleExchangeRateController extends Controller
     }
 
     /**
-     * ✅ Notifier le demandeur de la validation de son taux
+     *  Notifier le demandeur de la validation de son taux
      */
     protected function notifierValidationTaux($taux)
     {
@@ -321,7 +321,7 @@ class SuccursaleExchangeRateController extends Controller
     }
 
     /**
-     * ✅ Notifier le demandeur du rejet de son taux
+     *  Notifier le demandeur du rejet de son taux
      */
     protected function notifierRejetTaux($taux)
     {

@@ -215,17 +215,17 @@ class ReceptionFournisseur extends Model
             'reception_id' => $this->id,
             'commande_ligne_id' => $ligneCommandeId,
             'produit_id' => $ligneCommande->produit_id,
-            'quantite_attendue' => $ligneCommande->quantite,  // ✅ AJOUTER
+            'quantite_attendue' => $ligneCommande->quantite,  //  AJOUTER
             'quantite_recue' => $quantiteRecue,
             'quantite_casse' => $options['quantite_casse'] ?? 0,
             'quantite_perdue' => $options['quantite_perdue'] ?? 0,
             'quantite_non_conforme' => $options['quantite_non_conforme'] ?? 0,
-            'prix_unitaire_ht_commande' => $ligneCommande->prix_unitaire_ht,  // ✅ AJOUTER
+            'prix_unitaire_ht_commande' => $ligneCommande->prix_unitaire_ht,  //  AJOUTER
             'prix_unitaire_ht_recu' => $ligneCommande->prix_unitaire_ht,
-            'remise' => $ligneCommande->remise ?? 0,  // ✅ AJOUTER
-            'taux_tva' => $ligneCommande->taux_tva ?? 16,  // ✅ AJOUTER
+            'remise' => $ligneCommande->remise ?? 0,  //  AJOUTER
+            'taux_tva' => $ligneCommande->taux_tva ?? 16,  //  AJOUTER
             'date_expiration_lot' => $options['date_expiration'] ?? null,
-            'numero_lot' => $options['numero_lot'] ?? null,  // ✅ AJOUTER
+            'numero_lot' => $options['numero_lot'] ?? null,  //  AJOUTER
             'notes' => $options['notes'] ?? null
         ]);
 

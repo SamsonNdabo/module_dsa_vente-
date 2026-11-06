@@ -112,7 +112,7 @@ protected static function boot()
     }
 
     /**
-     * ✅ CORRIGÉ : Vérifie si le rôle a des utilisateurs
+     *  CORRIGÉ : Vérifie si le rôle a des utilisateurs
      */
     public function hasUtilisateurs(): bool
     {
@@ -122,7 +122,7 @@ protected static function boot()
     
 
     /**
-     * ✅ CORRIGÉ : Compte TOUS les utilisateurs liés à ce rôle
+     *  CORRIGÉ : Compte TOUS les utilisateurs liés à ce rôle
      * (Combine les deux tables) - SANS CACHE STATIQUE
      */
     public function countUtilisateurs(): int
@@ -142,7 +142,7 @@ protected static function boot()
     }
 
     /**
-     * ✅ CORRIGÉ : Accesseur principal - utilise la méthode sans cache
+     *  CORRIGÉ : Accesseur principal - utilise la méthode sans cache
      */
     public function getNombreUtilisateursAttribute()
     {
@@ -150,7 +150,7 @@ protected static function boot()
     }
 
     /**
-     * ✅ CORRIGÉ : Vérifie la cohérence avant suppression
+     *  CORRIGÉ : Vérifie la cohérence avant suppression
      */
     public function canDelete(): array
     {

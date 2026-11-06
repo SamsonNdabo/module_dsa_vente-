@@ -337,7 +337,7 @@ class BudgetFichierService
     }
 
     /**
-     * ✅ CORRIGÉ : chaque style est appliqué séparément (Font / Fill / Borders)
+     *  CORRIGÉ : chaque style est appliqué séparément (Font / Fill / Borders)
      */
     private function styleHeader($sheet, $range): void
     {
@@ -406,7 +406,7 @@ class BudgetFichierService
         $sheet->setCellValue('D24', 'Location salle');
 
         // --- Astuce ---
-        $sheet->setCellValue('A26', '✅ Astuce : remplir Section et Type sur la 1ère ligne, laisser vides ensuite.');
+        $sheet->setCellValue('A26', ' Astuce : remplir Section et Type sur la 1ère ligne, laisser vides ensuite.');
         $sheet->getStyle('A26')->getFont()->setItalic(true);
 
         // --- MONTANTS ---
@@ -427,13 +427,13 @@ class BudgetFichierService
 
     // ==========================================
     // BUDGET SHEET
-    // ✅ CORRIGÉ : plus de chaînage getFont()->...->getFill()
+    //  CORRIGÉ : plus de chaînage getFont()->...->getFill()
     // ==========================================
     private function buildBudgetSheet($sheet, $rubriques, $previsions, $totauxParents, $periode): void
     {
         $sheet->setCellValue('A1', 'BUDGET PREVISIONNEL - ' . $periode->code)->mergeCells('A1:R1');
 
-        // ✅ Style TITRE : 2 appels séparés
+        //  Style TITRE : 2 appels séparés
         $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
         $sheet->getStyle('A1')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('DBEAFE');
 
@@ -468,7 +468,7 @@ class BudgetFichierService
             if ($tv !== $lastType) $lastType = $tv;
 
             if ($isP) {
-                // ✅ Style PARENT : 2 appels séparés
+                //  Style PARENT : 2 appels séparés
                 $sheet->getStyle("A{$row}:R{$row}")->getFont()->setBold(true);
                 $sheet->getStyle("A{$row}:R{$row}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('E8E8E8');
             }
@@ -501,7 +501,7 @@ class BudgetFichierService
 
         $fin = max($row, 200);
 
-        // ✅ Style GLOBAL : 2 appels séparés
+        //  Style GLOBAL : 2 appels séparés
         $sheet->getStyle("A4:R{$fin}")->getFont()->getColor()->setARGB('000000');
         $sheet->getStyle("A4:R{$fin}")->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
 
@@ -941,13 +941,13 @@ class BudgetFichierService
 
     // ==========================================
     // EXPORT - SYNTHÈSE
-    // ✅ CORRIGÉ : plus de chaînage getFont()->...->getFill()
+    //  CORRIGÉ : plus de chaînage getFont()->...->getFill()
     // ==========================================
     private function buildSyntheseSheet($sheet, $lignes, $periode, $moisAFiltrer, $moisNoms): void
     {
         $sheet->setCellValue('A1', 'SUIVI BUDGÉTAIRE - ' . ($periode->code ?? ''))->mergeCells('A1:Z1');
 
-        // ✅ Style TITRE : 3 appels séparés
+        //  Style TITRE : 3 appels séparés
         $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
         $sheet->getStyle('A1')->getFont()->getColor()->setARGB('FFFFFF');
         $sheet->getStyle('A1')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('1e3a5f');
@@ -978,7 +978,7 @@ class BudgetFichierService
             if ($l['type'] === 'section') {
                 $sheet->mergeCells("A{$row}:{$lc}{$row}")->setCellValue("A{$row}", $l['libelle']);
 
-                // ✅ Style SECTION : 2 appels séparés
+                //  Style SECTION : 2 appels séparés
                 $sheet->getStyle("A{$row}:{$lc}{$row}")->getFont()->setBold(true);
                 $sheet->getStyle("A{$row}:{$lc}{$row}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('f1f5f9');
 
@@ -989,7 +989,7 @@ class BudgetFichierService
             $sheet->setCellValue("A{$row}", ($l['code'] ? $l['code'] . ' - ' : '') . $l['libelle']);
 
             if ($l['type'] === 'parent') {
-                // ✅ Style PARENT : 2 appels séparés
+                //  Style PARENT : 2 appels séparés
                 $sheet->getStyle("A{$row}:{$lc}{$row}")->getFont()->setBold(true);
                 $sheet->getStyle("A{$row}:{$lc}{$row}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('f8fafc');
             }
@@ -1017,7 +1017,7 @@ class BudgetFichierService
             $row++;
         }
 
-        // ✅ Style LIGNE TOTAL : 2 appels séparés
+        //  Style LIGNE TOTAL : 2 appels séparés
         $sheet->getStyle("A{$row}:{$lc}{$row}")->getFont()->setBold(true);
         $sheet->getStyle("A{$row}:{$lc}{$row}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('e2e8f0');
         $sheet->setCellValue("A{$row}", 'TOTAL GÉNÉRAL');
@@ -1057,7 +1057,7 @@ class BudgetFichierService
 
     // ==========================================
     // EXPORT - DETAIL
-    // ✅ CORRIGÉ : plus de chaînage getFont()->...->getFill()
+    //  CORRIGÉ : plus de chaînage getFont()->...->getFill()
     // ==========================================
     private function buildDetailSheet($sheet, $lignes, $type, $periode, $moisAFiltrer, $moisNoms): void
     {
@@ -1065,7 +1065,7 @@ class BudgetFichierService
 
         $sheet->setCellValue('A1', $titres[$type] . ' - ' . ($periode->code ?? ''))->mergeCells('A1:N1');
 
-        // ✅ Style TITRE : 3 appels séparés
+        //  Style TITRE : 3 appels séparés
         $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
         $sheet->getStyle('A1')->getFont()->getColor()->setARGB('FFFFFF');
         $sheet->getStyle('A1')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('1e3a5f');
@@ -1091,7 +1091,7 @@ class BudgetFichierService
                 ->setCellValue("C{$row}", $l['section_type'] ?? '');
 
             if ($l['type'] === 'parent') {
-                // ✅ Style PARENT : 2 appels séparés
+                //  Style PARENT : 2 appels séparés
                 $sheet->getStyle("A{$row}:{$lc}{$row}")->getFont()->setBold(true);
                 $sheet->getStyle("A{$row}:{$lc}{$row}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('f8fafc');
             }

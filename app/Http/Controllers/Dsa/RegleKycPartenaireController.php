@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Dsa;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Dsa\Concerns\ExigePermission;
 use App\Http\Requests\Dsa\StoreRegleKycRequest;
-use App\Models\RegleKycPartenaire;
+use App\Models\Kyc\RegleKycPartenaire;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 

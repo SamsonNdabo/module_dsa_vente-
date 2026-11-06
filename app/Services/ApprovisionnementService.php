@@ -175,7 +175,7 @@ class ApprovisionnementService
                 '>',
                 0
             )
-            ->where('statut', 'ACTIF') // ✅ AJOUTER CE FILTRE
+            ->where('statut', 'ACTIF') //  AJOUTER CE FILTRE
             ->orderBy('created_at')
             ->orderBy('id')
             ->lockForUpdate()

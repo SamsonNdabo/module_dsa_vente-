@@ -165,7 +165,7 @@ class OperationManuelService
             // Recharger avec les relations
             $operation->load(['operations_type', 'entites', 'operations_autos']);
             
-            Log::info("✅ Opération créée", [
+            Log::info(" Opération créée", [
                 'id' => $operation->id,
                 'code' => $operation->code_operation,
                 'libelle' => $operation->libelle
@@ -228,7 +228,7 @@ class OperationManuelService
             
             $operation->load(['operations_type', 'entites', 'operations_autos']);
             
-            Log::info("✅ Opération modifiée", ['id' => $id, 'libelle' => $data['libelle']]);
+            Log::info(" Opération modifiée", ['id' => $id, 'libelle' => $data['libelle']]);
             
             return [
                 'success' => true,
@@ -265,7 +265,7 @@ class OperationManuelService
             
             DB::commit();
             
-            Log::info("✅ Opération supprimée", [
+            Log::info(" Opération supprimée", [
                 'id' => $id,
                 'auto_supprimees' => $deletedAuto
             ]);

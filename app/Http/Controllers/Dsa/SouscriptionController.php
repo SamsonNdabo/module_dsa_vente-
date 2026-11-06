@@ -6,10 +6,10 @@ use App\DTO\SouscriptionRequest;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Dsa\Concerns\ExigePermission;
 use App\Http\Requests\Dsa\SouscriptionClientRequest;
-use App\Models\PartenaireProduit;
+use App\Models\Partenaire\PartenaireProduit;
 use App\Models\Produit;
 use App\Models\ProduitEpargne;
-use App\Services\SouscriptionService;
+use App\Services\Souscription\SouscriptionService;
 use Illuminate\Http\Request;
 
 class SouscriptionController extends Controller

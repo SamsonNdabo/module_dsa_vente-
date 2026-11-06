@@ -162,7 +162,7 @@ class DashboardController extends Controller
     }
 
     // ============================================================
-    // ✅ NOUVELLES MÉTRIQUES
+    //  NOUVELLES MÉTRIQUES
     // ============================================================
 
     /**

@@ -302,18 +302,18 @@ class ReceptionFournisseurService
             $totalTVA += $montantTVA;
             $totalTTC += $montantTTC;
     
-            // ✅ Récupération des IMEI envoyés par le frontend
+            //  Récupération des IMEI envoyés par le frontend
             $imeis = $ligneData['imeis'] ?? [];
             if (!is_array($imeis)) {
                 $imeis = [];
             }
     
-            // ✅ Nettoyage des IMEI (supprimer les vides)
+            //  Nettoyage des IMEI (supprimer les vides)
             $imeis = array_values(array_filter($imeis, function($imei) {
                 return is_string($imei) && trim($imei) !== '';
             }));
     
-            // ✅ Construction des métadata
+            //  Construction des métadata
             $metadata = [
                 'imeis' => $imeis,
             ];
@@ -335,7 +335,7 @@ class ReceptionFournisseurService
                 'valeur_ttc' => $montantTTC,
                 'created_at' => now(),
                 'updated_at' => now(),
-                'metadata' => json_encode($metadata), // ✅ Stockage des IMEI
+                'metadata' => json_encode($metadata), //  Stockage des IMEI
             ];
         }
     

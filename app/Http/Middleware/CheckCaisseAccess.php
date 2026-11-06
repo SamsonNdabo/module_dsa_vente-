@@ -95,7 +95,7 @@ class CheckPosCookie
                 return redirect()->route('login');
             }
 
-            // ✅ SUCCÈS - Connecter l'utilisateur
+            //  SUCCÈS - Connecter l'utilisateur
             Auth::setUser($utilisateur);
 
             // Ajouter les infos utilisateur dans la requête (comme SharedSessionAuth)
@@ -112,7 +112,7 @@ class CheckPosCookie
                 ],
             ]);
 
-            Log::info('POS-AUTH: ✅ SUCCÈS', [
+            Log::info('POS-AUTH:  SUCCÈS', [
                 'user_id' => $utilisateur->id,
                 'nom' => $utilisateur->nom_complet,
                 'email' => $utilisateur->email,

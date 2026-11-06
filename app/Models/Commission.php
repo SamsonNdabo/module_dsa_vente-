@@ -92,14 +92,14 @@ class Commission extends Model
             return null;
         }
 
-        // ✅ Cast explicite en string (cohérent avec le cast decimal:4)
+        //  Cast explicite en string (cohérent avec le cast decimal:4)
         $montantTotal = (string) array_sum(array_column($services, 'montant'));
 
         $meta = self::resoudreMetadonnees($transaction);
 
         $commission = self::create([
             'id_transaction_global' => $transaction->id,
-            'montant_total'         => $montantTotal,  // ✅ string
+            'montant_total'         => $montantTotal,  //  string
             'devise_id'             => $transaction->devise_id,
             'statut'                => $statut,
             'succursale_id'         => $transaction->id_succursale,

@@ -108,7 +108,7 @@ class MouvementStockController extends Controller
 
     /**
      * Créer un mouvement de stock
-     * ✅ SYNCHRONISÉ AVEC LES LOTS
+     *  SYNCHRONISÉ AVEC LES LOTS
      * Permissions: create-mouvement-stock
      */
     public function store(Request $request)
@@ -361,12 +361,12 @@ class MouvementStockController extends Controller
                 return response()->json(['success' => false, 'message' => 'Accès refusé'], 403);
             }
 
-            // ✅ Vérification : seul un BROUILLON peut être supprimé
+            //  Vérification : seul un BROUILLON peut être supprimé
             if ($mouvement->statut !== 'BROUILLON') {
                 return response()->json(['success' => false, 'message' => 'Impossible de supprimer un mouvement déjà validé ou annulé.'], 422);
             }
 
-            // ✅ Vérification : pas de lots associés
+            //  Vérification : pas de lots associés
             if (in_array($mouvement->type_mouvement, ['ENTREE', 'RETOUR'])) {
                 if (LotStock::where('mouvement_entree_id', $mouvement->mouvement_id)->exists()) {
                     return response()->json(['success' => false, 'message' => 'Ce mouvement a déjà créé un lot. Utilisez l\'annulation.'], 422);
@@ -377,7 +377,7 @@ class MouvementStockController extends Controller
                 }
             }
 
-            // ✅ Suppression sans modification du stock (puisque le mouvement est en brouillon, le stock n'a pas été modifié)
+            //  Suppression sans modification du stock (puisque le mouvement est en brouillon, le stock n'a pas été modifié)
             $mouvement->delete();
 
             return response()->json(['success' => true, 'message' => 'Mouvement supprimé avec succès']);
@@ -423,7 +423,7 @@ class MouvementStockController extends Controller
                 return response()->json(['success' => false, 'message' => 'Ce mouvement est déjà annulé.'], 422);
             }
 
-            // ✅ Utilisation de StockService::annuler()
+            //  Utilisation de StockService::annuler()
             $mouvementAnnulation = $this->stockService->annuler($mouvement, $request->raison);
 
             return response()->json([

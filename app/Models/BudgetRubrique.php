@@ -53,7 +53,7 @@ class BudgetRubrique extends Model
                 'actif' => $rubrique->actif,
             ], 'INFO');
 
-            // 🆕 LOG + BROADCAST
+            //  LOG + BROADCAST
             try {
                 $section = $rubrique->section ? $rubrique->section->libelle : 'N/A';
                 $log = SysLogComptable::create([
@@ -77,7 +77,7 @@ class BudgetRubrique extends Model
                 $rubrique->logAudit('MODIFICATION_RUBRIQUE_BUDGET', $rubrique->getOriginal(), $changed, 'HAUTE');
             }
 
-            // 🆕 LOG + BROADCAST
+            //  LOG + BROADCAST
             try {
                 $log = SysLogComptable::create([
                     'utilisateur_id' => auth()->id() ?? 1,
@@ -97,7 +97,7 @@ class BudgetRubrique extends Model
         static::deleted(function ($rubrique) {
             $rubrique->logAudit('SUPPRESSION_RUBRIQUE_BUDGET', $rubrique->toArray(), null, 'CRITIQUE');
 
-            // 🆕 LOG + BROADCAST
+            //  LOG + BROADCAST
             try {
                 $log = SysLogComptable::create([
                     'utilisateur_id' => auth()->id() ?? 1,

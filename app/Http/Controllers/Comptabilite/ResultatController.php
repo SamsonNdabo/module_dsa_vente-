@@ -103,7 +103,7 @@ class ResultatController extends Controller
             $ecartNet  = $totalActif - $totalPassif;
             $equilibre = abs($ecartNet) < 0.01;
 
-            // 🆕 Infos sur le résultat (131 / 139)
+            //  Infos sur le résultat (131 / 139)
             $estBenefice     = $resultatNet >= 0;
             $compteResultat  = $estBenefice ? self::COMPTE_RESULTAT_BENEFICE : self::COMPTE_RESULTAT_PERTE;
             $libelleResultat = $estBenefice ? 'RÉSULTAT NET : BÉNÉFICE' : 'RÉSULTAT NET : PERTE';
@@ -133,7 +133,7 @@ class ResultatController extends Controller
                 'ecart_net'      => $ecartNet,
                 'equilibre'      => $equilibre,
 
-                // 🆕 Infos résultat 131/139
+                //  Infos résultat 131/139
                 'est_benefice'     => $estBenefice,
                 'compte_resultat'  => $compteResultat,
                 'libelle_resultat' => $libelleResultat,
@@ -207,8 +207,8 @@ class ResultatController extends Controller
         $resultat = $bilanData['resultat_net'] ?? 0;
 
         $message = $resultat >= 0
-            ? "✅ Bénéfice de " . number_format($resultat, 2) . " $"
-            : "✅ Perte de " . number_format(abs($resultat), 2) . " $";
+            ? " Bénéfice de " . number_format($resultat, 2) . " $"
+            : " Perte de " . number_format(abs($resultat), 2) . " $";
 
         return response()->json([
             'success'       => true,
@@ -322,7 +322,7 @@ class ResultatController extends Controller
     }
 
     // =========================================================================
-    // 🆕 EXPORT EXCEL — 2 FEUILLES — MISE EN PAGE COMPTABLE
+    //  EXPORT EXCEL — 2 FEUILLES — MISE EN PAGE COMPTABLE
     //    Feuille 1 Bilan : ACTIF (gauche) | PASSIF (droite) + Ligne 131/139
     //    Feuille 2 CR    : CHARGES (gauche) | PRODUITS (droite)
     // =========================================================================
@@ -334,7 +334,7 @@ class ResultatController extends Controller
             ? $data['entite']['code'] . ' - ' . $data['entite']['nom']
             : 'Toutes les entités';
 
-        // 🆕 Résultat net + compte
+        //  Résultat net + compte
         $resultatNet     = $data['resultat_net'] ?? 0;
         $estBenefice     = $resultatNet >= 0;
         $compteResultat  = $estBenefice ? self::COMPTE_RESULTAT_BENEFICE : self::COMPTE_RESULTAT_PERTE;
@@ -424,7 +424,7 @@ class ResultatController extends Controller
         $actifs  = $data['actif']['detail']  ?? [];
         $passifs = $data['passif']['detail'] ?? [];
 
-        // 🆕 AJOUTER LA LIGNE 131/139 DANS LE BON CÔTÉ
+        //  AJOUTER LA LIGNE 131/139 DANS LE BON CÔTÉ
         //    Bénéfice → 131 au PASSIF
         //    Perte    → 139 à l'ACTIF
         if (abs($resultatNet) > 0.01) {
@@ -463,7 +463,7 @@ class ResultatController extends Controller
                 $sheetBilan->getStyle("A{$row}")->getAlignment()->setHorizontal('center');
                 $sheetBilan->getStyle("E{$row}")->getFont()->setBold(true);
 
-                // 🆕 Surligner la ligne 131/139 (vert si bénéfice, rouge si perte)
+                //  Surligner la ligne 131/139 (vert si bénéfice, rouge si perte)
                 if ($isResultat) {
                     $sheetBilan->getStyle("A{$row}:E{$row}")->applyFromArray([
                         'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => $estBenefice ? 'D1FAE5' : 'FEE2E2']],
@@ -493,7 +493,7 @@ class ResultatController extends Controller
                 $sheetBilan->getStyle("G{$row}")->getAlignment()->setHorizontal('center');
                 $sheetBilan->getStyle("K{$row}")->getFont()->setBold(true);
 
-                // 🆕 Surligner la ligne 131/139
+                //  Surligner la ligne 131/139
                 if ($isResultat) {
                     $sheetBilan->getStyle("G{$row}:K{$row}")->applyFromArray([
                         'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => $estBenefice ? 'D1FAE5' : 'FEE2E2']],
@@ -542,7 +542,7 @@ class ResultatController extends Controller
         $sheetBilan->getRowDimension($row)->setRowHeight(24);
         $row++;
 
-        // 🆕 Ligne explicative du compte 131/139
+        //  Ligne explicative du compte 131/139
         if (abs($resultatNet) > 0.01) {
             $sheetBilan->setCellValue("A{$row}",
                 $estBenefice
@@ -599,7 +599,7 @@ class ResultatController extends Controller
 
         $sheetBilan->setCellValue("A{$row}",
             $equilibre
-                ? '✅ BILAN ÉQUILIBRÉ'
+                ? ' BILAN ÉQUILIBRÉ'
                 : '⚠️ DÉSÉQUILIBRE DE ' . number_format(abs($ecartNet), 2, ',', ' ') . ' $'
         )->mergeCells("A{$row}:K{$row}");
         $sheetBilan->getStyle("A{$row}")->applyFromArray([
@@ -824,7 +824,7 @@ class ResultatController extends Controller
         $sheetCR->getRowDimension($rowCR)->setRowHeight(24);
         $rowCR++;
 
-        // 🆕 Ligne explicative : report vers 131/139
+        //  Ligne explicative : report vers 131/139
         $sheetCR->setCellValue("A{$rowCR}",
             $estBenefice
                 ? "💡 Ce résultat sera reporté au compte 131 (Bénéfice) dans le PASSIF du Bilan"

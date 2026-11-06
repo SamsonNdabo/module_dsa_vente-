@@ -17,7 +17,7 @@ class AmortissementService
      *  POINT D'ENTRÉE : exécute l'amortissement avec RATTRAPAGE AUTOMATIQUE
      * ═══════════════════════════════════════════════════════════════════
      *
-     *  ✅ On retourne :
+     *   On retourne :
      *     - "details"  : les immos TRAITÉES (mois créés) avec libellé
      *     - "ignorees" : les VRAIES erreurs avec libellé
      *     - "resume"   : compteurs (traitees, ignorees, skipped, mois_total)

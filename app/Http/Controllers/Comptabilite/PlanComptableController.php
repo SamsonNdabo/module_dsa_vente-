@@ -21,7 +21,7 @@ class PlanComptableController extends Controller
 
     // =========================================================================
     // PAGES PRINCIPALES
-    // ✅ SEUL CHANGEMENT : view() -> response()->json()
+    //  SEUL CHANGEMENT : view() -> response()->json()
     // =========================================================================
     public function index()
     {

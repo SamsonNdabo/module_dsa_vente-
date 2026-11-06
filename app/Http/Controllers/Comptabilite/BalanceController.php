@@ -354,8 +354,8 @@ class BalanceController extends Controller
                 'total_debit_global' => $totalDebitGlobal,
                 'total_credit_global' => $totalCreditGlobal,
                 'nb_comptes' => count($comptesArray),
-                'nb_ecritures' => $nbEcritures,   // ✅ Écritures distinctes
-                'nb_lignes' => $nbLignes,         // ✅ Lignes brutes (info)
+                'nb_ecritures' => $nbEcritures,   //  Écritures distinctes
+                'nb_lignes' => $nbLignes,         //  Lignes brutes (info)
                 'periode' => $periodeFormatted,
                 'filters_applied' => $this->getAppliedFilters($request),
             ]);

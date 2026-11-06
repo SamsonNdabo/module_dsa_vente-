@@ -101,7 +101,7 @@ class RemiseController extends Controller
     public function show($id)
     {
         try {
-            // ✅ Sélection des colonnes nécessaires
+            //  Sélection des colonnes nécessaires
             $regle = RemiseRegle::select([
                 'id', 'nom', 'description', 'type', 'valeur',
                 'application', 'cible', 'cible_valeur',

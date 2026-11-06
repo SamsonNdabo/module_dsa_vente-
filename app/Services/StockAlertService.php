@@ -17,8 +17,8 @@ class StockAlertService
 
     /**
      * Vérifie les lots expirants et retourne les alertes formatées
-     * ✅ Utilise la table lots_stock
-     * ✅ Traite automatiquement les lots expirés (change le statut UNIQUEMENT)
+     *  Utilise la table lots_stock
+     *  Traite automatiquement les lots expirés (change le statut UNIQUEMENT)
      */
     public function verifierLotsExpirants(Utilisateur $user): array
     {
@@ -35,10 +35,10 @@ class StockAlertService
                 return $alertes;
             }
 
-            // ✅ Traiter d'abord les lots expirés (changer leur statut UNIQUEMENT)
+            //  Traiter d'abord les lots expirés (changer leur statut UNIQUEMENT)
             $this->traiterLotsExpires($succursalesIds);
 
-            // ✅ Récupérer les lots proches et expirés
+            //  Récupérer les lots proches et expirés
             $lotsData = $this->fetchLotData($succursalesIds);
             $lotsProches = $lotsData['proches'];
             $lotsExpires = $lotsData['expires'];
@@ -82,7 +82,7 @@ class StockAlertService
     }
 
     /**
-     * ✅ Traiter les lots expirés (changer le statut UNIQUEMENT)
+     *  Traiter les lots expirés (changer le statut UNIQUEMENT)
      * 
      * NE crée PAS de mouvement de sortie
      * NE diminue PAS la quantité du stock
@@ -116,7 +116,7 @@ class StockAlertService
 
             foreach ($lotsExpires as $lot) {
                 try {
-                    // ✅ UNIQUEMENT changer le statut du lot
+                    //  UNIQUEMENT changer le statut du lot
                     // PAS de mouvement de sortie
                     // PAS de diminution du stock
                     // PAS de mouvement de perte
@@ -174,7 +174,7 @@ class StockAlertService
 
     /**
      * Récupère tous les lots proches et expirés depuis la table lots_stock
-     * ✅ Utilise LotStock au lieu de MouvementStock
+     *  Utilise LotStock au lieu de MouvementStock
      */
     private function fetchLotData(array $succursalesIds): array
     {

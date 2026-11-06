@@ -73,7 +73,7 @@ class TvaController extends Controller
     }
 
     /**
-     * ✅ Formate un montant pour les logs (avec $ et signe)
+     *  Formate un montant pour les logs (avec $ et signe)
      */
     private function fmt(float $montant): string
     {
@@ -81,7 +81,7 @@ class TvaController extends Controller
     }
 
     /**
-     * ✅ Construit un bloc de log "AVANT / APRÈS" pour une écriture
+     *  Construit un bloc de log "AVANT / APRÈS" pour une écriture
      */
     private function logEcritureBilan(string $titre, array $lignes): void
     {
@@ -102,7 +102,7 @@ class TvaController extends Controller
             );
         }
 
-        $equilibre = abs($totalDebit - $totalCredit) < self::TOLERANCE_ZERO ? '✅ ÉQUILIBRÉ' : '❌ DÉSÉQUILIBRÉ';
+        $equilibre = abs($totalDebit - $totalCredit) < self::TOLERANCE_ZERO ? ' ÉQUILIBRÉ' : '❌ DÉSÉQUILIBRÉ';
 
         Log::info($titre, $this->logContext([
             'lignes' => $detail,
@@ -201,7 +201,7 @@ class TvaController extends Controller
     }
 
     /**
-     * ✅ CORRECTION : On masque les entités sans aucun solde à régulariser
+     *  CORRECTION : On masque les entités sans aucun solde à régulariser
      *    (sauf si elles sont déjà régularisées, pour permettre la suppression)
      */
     private function calculerDetailParEntite(CarbonInterface $dateDebut, CarbonInterface $dateFin, $moisFormat, $succursaleId = null): array
@@ -220,7 +220,7 @@ class TvaController extends Controller
                 ->where('entite_id', $entite->id)
                 ->first();
 
-            // ✅ CORRECTION : Ne pas exposer une entité sans aucun solde
+            //  CORRECTION : Ne pas exposer une entité sans aucun solde
             //    SAUF si elle est déjà régularisée (pour permettre la suppression)
             $aRienARegulariser = (
                 abs($s443) < self::TOLERANCE_ZERO &&
@@ -320,14 +320,14 @@ class TvaController extends Controller
 
         $moisPeriode = $request->mois ?? Carbon::parse($periode->date_debut)->format('Y-m');
 
-        // ✅ Vérification de l'existence d'une régularisation déjà faite pour ce mois/entité
+        //  Vérification de l'existence d'une régularisation déjà faite pour ce mois/entité
         $tvaExistante = TvaComptable::where('periode_id', $periodeId)
             ->where('entite_id', $entiteId)
             ->where('succursale_id', $succursaleId)
             ->where('mois', $moisPeriode)
             ->first();
 
-        // ✅ Vérification qu'il n'y a pas un manquant avant d'écraser
+        //  Vérification qu'il n'y a pas un manquant avant d'écraser
         if ($tvaExistante) {
             Log::info('⚠️  Regularisation DEJA EXISTANTE pour ce mois/entite', $this->logContext([
                 'tva_id'                => $tvaExistante->id,
@@ -344,7 +344,7 @@ class TvaController extends Controller
         try {
             DB::beginTransaction();
 
-            Log::info('✅ Transaction DB ouverte', $this->logContext([
+            Log::info(' Transaction DB ouverte', $this->logContext([
                 'periode_id'   => $periodeId,
                 'mois_periode' => $moisPeriode,
                 'entite_id'    => $entiteId,
@@ -383,7 +383,7 @@ class TvaController extends Controller
 
             $difference = $solde443 - $solde445 - $creditAnterieur;
 
-            // ✅ LOG : Détail du calcul
+            //  LOG : Détail du calcul
             Log::info('│  📊 MONTANTS AVANT RÉGULARISATION', $this->logContext([
                 'mois'                        => $moisPeriode,
                 'entite_id'                   => $entiteId,
@@ -401,7 +401,7 @@ class TvaController extends Controller
             ]));
 
             // =============================================================
-            // ✅ CORRECTION CRITIQUE : REFUS SI DIFFERENCE == 0
+            //  CORRECTION CRITIQUE : REFUS SI DIFFERENCE == 0
             // =============================================================
             if (abs($difference) < self::TOLERANCE_ZERO) {
                 DB::rollBack();
@@ -526,7 +526,7 @@ class TvaController extends Controller
                 ]));
             }
 
-            // ✅ LOG : Détail complet du bilan comptable (Partie Double)
+            //  LOG : Détail complet du bilan comptable (Partie Double)
             $this->logEcritureBilan('│  📋 BILAN COMPTABLE DE L ÉCRITURE', $lignesCreees);
 
             // =============================================================
@@ -581,7 +581,7 @@ class TvaController extends Controller
 
             DB::commit();
 
-            Log::info('✅ Transaction DB commit OK', $this->logContext([
+            Log::info(' Transaction DB commit OK', $this->logContext([
                 'periode_id'   => $periodeId,
                 'mois_periode' => $moisPeriode,
                 'entite_id'    => $entiteId,
@@ -590,7 +590,7 @@ class TvaController extends Controller
             $this->broadcastTva('regularise', $dataTva);
 
             // =============================================================
-            // ✅ LOG FINAL : RÉCAPITULATIF AVANT / APRÈS
+            //  LOG FINAL : RÉCAPITULATIF AVANT / APRÈS
             // =============================================================
             Log::info('════════════════════════════════════════════════════════════', $this->logContext([
                 'ETAPE' => 'FIN REGULARISATION TVA (SUCCES)',

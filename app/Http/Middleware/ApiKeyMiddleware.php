@@ -10,7 +10,7 @@ class ApiKeyMiddleware
 {
     public function handle(Request $request, Closure $next)
     {
-        // ✅ Autoriser les requêtes preflight CORS
+        //  Autoriser les requêtes preflight CORS
         if ($request->isMethod('OPTIONS')) {
             return response()->json([], 200);
         }

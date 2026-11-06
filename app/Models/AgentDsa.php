@@ -3,7 +3,9 @@
 namespace App\Models;
 
 use App\Enums\AgentStatut;
-use Illuminate\Database\Eloquent\Builder;
+use App\Models\Agent\AgentAffectation;
+use App\Models\Agent\AgentStatutHistorique;
+use App\Models\Campagne\CampagneAgent;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -13,24 +15,41 @@ class AgentDsa extends Model
     protected $table = 'agents_dsa';
 
     protected $fillable = [
-        'code', 'utilisateur_id', 'succursale_id', 'zone_id', 'superviseur_id',
-        'prenom', 'nom', 'sexe', 'adresse', 'province', 'ville', 'commune',
-        'photo_path', 'piece_identite_type', 'piece_identite_numero', 'piece_identite_fichier',
-        'date_embauche', 'date_resiliation', 'statut', 'objectifs', 'created_by',
+        'code',
+        'utilisateur_id',
+        'zone_id',
+        'superviseur_id',
+        'date_embauche',
+        'date_resiliation',
+        'statut',
+        'objectifs',
+        'piece_identite_type',
+        'piece_identite_numero',
+        'piece_identite_fichier',
+        'created_by',
     ];
-
-    protected $hidden = ['piece_identite_fichier'];
 
     protected $casts = [
-        'statut' => AgentStatut::class,
-        'date_embauche' => 'date',
+        'objectifs'        => 'array',
+        'date_embauche'    => 'date',
         'date_resiliation' => 'date',
-        'objectifs' => 'array',
+        'statut'           => AgentStatut::class,
     ];
+
+    protected $attributes = [
+        'statut' => 'ACTIF',
+    ];
+
+    /* ---------------- Relations ---------------- */
 
     public function utilisateur(): BelongsTo
     {
-        return $this->belongsTo(Utilisateur::class, 'utilisateur_id');
+        return $this->belongsTo(Utilisateur::class, 'utilisateur_id', 'id');
+    }
+
+    public function zone(): BelongsTo
+    {
+        return $this->belongsTo(Zone::class, 'zone_id');
     }
 
     public function superviseur(): BelongsTo
@@ -38,56 +57,80 @@ class AgentDsa extends Model
         return $this->belongsTo(Utilisateur::class, 'superviseur_id');
     }
 
-    public function clientsDsa(): HasMany
+    public function createur(): BelongsTo
     {
-        return $this->hasMany(Client::class, 'agent_dsa_id');
+        return $this->belongsTo(Utilisateur::class, 'created_by');
     }
 
-    public function zone(): BelongsTo
+    public function campagnes(): HasMany
     {
-        return $this->belongsTo(Zone::class, 'zone_id'); // modèle Zone à créer à l'étape territoire
+        return $this->hasMany(CampagneAgent::class, 'id_agent');
     }
 
     public function statutHistoriques(): HasMany
     {
-        return $this->hasMany(AgentStatutHistorique::class, 'agent_dsa_id')->latest('id');
+        return $this->hasMany(AgentStatutHistorique::class, 'agent_dsa_id');
     }
 
     public function affectations(): HasMany
     {
-        return $this->hasMany(AgentAffectation::class, 'agent_dsa_id')->latest('id');
+        return $this->hasMany(AgentAffectation::class, 'agent_dsa_id');
     }
 
-    public function objectifs(): HasMany
+    /* ---------------- Scopes ---------------- */
+
+    public function scopeActifs($query)
     {
-        return $this->hasMany(ObjectifMesurable::class, 'agent_dsa_id');
+        return $query->where('statut', AgentStatut::ACTIF->value);
     }
 
-    public function getNomCompletAttribute(): string
+    public function scopeParZone($query, int $zoneId)
     {
-        return trim("{$this->prenom} {$this->nom}");
+        return $query->where('zone_id', $zoneId);
     }
 
-    public function scopeActifs(Builder $q): Builder
+    public function scopeParSuperviseur($query, int $superviseurId)
     {
-        return $q->where('statut', AgentStatut::ACTIF->value);
+        return $query->where('superviseur_id', $superviseurId);
     }
 
-    /** Périmètre de visibilité (cahier des charges §3). */
-    public function scopeVisiblePour(Builder $q, Utilisateur $u): Builder
+    public function scopeVisiblePour(Builder $query, ?Utilisateur $user): Builder
     {
-        if ($u->hasRole(['SUPER_ADMIN', 'ADMIN_DSA'])) {
-            return $q;
+        if (! $user) {
+            return $query->whereRaw('1 = 0');
         }
 
-        if ($u->hasRole('SUPERVISEUR_DSA')) {
-            return $q->where(function (Builder $w) use ($u) {
-                $w->where('superviseur_id', $u->id)
-                  ->orWhereHas('zone', fn (Builder $z) => $z->where('superviseur_id', $u->id));
+        if ($user->hasRole(['SUPER_ADMIN'])) {
+            return $query;
+        }
+
+        // Un superviseur voit tous les agents rattachés à ses zones
+        if ($user->hasRole('SUPERVISEUR')) {
+            return $query->where(function ($q) use ($user) {
+                $q->where('superviseur_id', $user->id)
+                  ->orWhereHas('zone', fn ($z) => $z->where('superviseur_id', $user->id));
             });
         }
 
-        return $q->whereRaw('1 = 0');
+        // Un agent DSA ne voit que son propre profil
+        if ($user->hasRole('AGENT_DSA')) {
+            return $query->where('utilisateur_id', $user->id);
+        }
+
+        // Par défaut : aucun accès
+        return $query->whereRaw('1 = 0');
     }
-    
+
+    /* ---------------- Helpers ---------------- */
+
+    public function estActif(): bool
+    {
+        return $this->statut === AgentStatut::ACTIF;
+    }
+
+    /** Délègue à Utilisateur (pas de duplication) */
+    public function nomComplet(): string
+    {
+        return $this->utilisateur?->nom_complet ?? 'Inconnu';
+    }
 }

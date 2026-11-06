@@ -323,7 +323,7 @@ class Utilisateur extends Authenticatable
 
         public function agentDsa()
     {
-        return $this->hasOne(\App\Models\AgentDsa::class, 'utilisateur_id');
+        return $this->hasOne(::class, 'utilisateur_id');
     }
 
     // ============================================================

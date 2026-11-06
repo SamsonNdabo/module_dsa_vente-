@@ -48,11 +48,11 @@ class ClientController extends Controller
                 }
             }
 
-            // ✅ Créer une notification pour le client - Utilisation d'URL directe
+            //  Créer une notification pour le client - Utilisation d'URL directe
             $this->createNotification($client, [
                 'type' => 'CREATION_CLIENT',
                 'message' => 'Votre compte client a été créé avec succès.',
-                'lien' => url('/clients/' . $client->id) // ✅ URL directe au lieu de route()
+                'lien' => url('/clients/' . $client->id) //  URL directe au lieu de route()
             ]);
 
             return response()->json([
@@ -118,7 +118,7 @@ class ClientController extends Controller
     public function index(Request $request)
     {
         try {
-            // ✅ Sélection des colonnes nécessaires
+            //  Sélection des colonnes nécessaires
             $query = Client::select([
                 'id', 'code_client', 'nom_complet', 'email', 'telephone',
                 'adresse', 'categorie_client', 'statut', 'nombre_achats',
@@ -151,7 +151,7 @@ class ClientController extends Controller
             $clients = $query->orderBy('created_at', 'desc')
                 ->paginate($request->get('per_page', 15));
 
-            // ✅ Statistiques en UNE SEULE REQUÊTE
+            //  Statistiques en UNE SEULE REQUÊTE
             $stats = $this->getClientStats();
 
             return response()->json([
@@ -250,7 +250,7 @@ class ClientController extends Controller
     }
 
     /**
-     * ✅ Créer une notification pour le client
+     *  Créer une notification pour le client
      */
     protected function createNotification(Client $client, array $data): void
     {

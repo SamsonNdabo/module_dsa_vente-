@@ -25,7 +25,7 @@ class ApprobationLogistiqueController extends Controller
     {
         $user = auth()->user();
 
-        // ✅ Récupérer toutes les demandes en attente
+        //  Récupérer toutes les demandes en attente
         $demandesEnAttente = Approvisionnement::where('statut_approbation_logistique', 'EN_ATTENTE')
             ->with([
                 'destinationSuccursale',
@@ -67,7 +67,7 @@ class ApprobationLogistiqueController extends Controller
             ], 422);
         }
 
-        // ✅ VÉRIFICATION DU RÔLE REQUIS
+        //  VÉRIFICATION DU RÔLE REQUIS
         $roleRequis = $this->getRoleRequisPourApprobation($demande);
         
         if ($roleRequis && !$user->hasRole($roleRequis)) {
@@ -117,7 +117,7 @@ class ApprobationLogistiqueController extends Controller
             ], 422);
         }
 
-        // ✅ VÉRIFICATION DU RÔLE REQUIS
+        //  VÉRIFICATION DU RÔLE REQUIS
         $roleRequis = $this->getRoleRequisPourApprobation($demande);
         
         if ($roleRequis && !$user->hasRole($roleRequis)) {
@@ -183,25 +183,25 @@ class ApprobationLogistiqueController extends Controller
      */
     private function getRoleRequisPourApprobation($demande): ?string
     {
-        // ✅ Récupérer le seuil configuré pour la devise de la demande
+        //  Récupérer le seuil configuré pour la devise de la demande
         $seuil = SeuilLogistique::where('devise_id', $demande->devise_id)
             ->where('actif', true)
             ->first();
 
-        // ✅ Si aucun seuil configuré, pas de restriction
+        //  Si aucun seuil configuré, pas de restriction
         if (!$seuil) {
             return null;
         }
 
-        // ✅ Vérifier si le montant total dépasse le seuil
+        //  Vérifier si le montant total dépasse le seuil
         $montantTotal = $demande->valeur_totale ?? $demande->cout_total ?? 0;
 
         if ($montantTotal <= $seuil->montant_max_approbation_superieur) {
-            // ✅ En dessous du seuil, pas besoin d'approbation supérieure
+            //  En dessous du seuil, pas besoin d'approbation supérieure
             return null;
         }
 
-        // ✅ Au-dessus du seuil, retourner le rôle requis
+        //  Au-dessus du seuil, retourner le rôle requis
         return $seuil->niveau_superieur_role;
     }
 }

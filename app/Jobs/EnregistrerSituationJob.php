@@ -110,7 +110,7 @@ class EnregistrerSituationJob implements ShouldQueue
                 'duree' => $duration,
             ]);
             
-            Log::info('✅ Job EnregistrerSituation terminé', [
+            Log::info(' Job EnregistrerSituation terminé', [
                 'periode_id' => $this->periodeId,
                 'duree_secondes' => $duration,
                 'total_enregistrements' => $resultFinal['total'] ?? $totalEnregistrements,

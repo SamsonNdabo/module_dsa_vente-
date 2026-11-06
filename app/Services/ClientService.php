@@ -11,7 +11,6 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\ClientWelcomeMail;
 
-
 class ClientService
 {
     public function creerClient(array $data): Client

@@ -314,7 +314,7 @@ class ProduitImei extends Model
         $this->date_vente = now();
         $this->date_sortie = now();
         
-        // ✅ Enregistrer le prix de vente si fourni
+        //  Enregistrer le prix de vente si fourni
         if ($prixVente !== null) {
             $this->prix_vente = $prixVente;
         }

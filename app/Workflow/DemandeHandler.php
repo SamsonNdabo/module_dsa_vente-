@@ -2,7 +2,7 @@
 
 namespace App\Workflow;
 
-use App\Models\Demande;
+use App\Models\Kyc\Demande;
 use App\Models\Utilisateur;
 
 interface DemandeHandler

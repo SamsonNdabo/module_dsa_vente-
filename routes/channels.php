@@ -57,7 +57,7 @@ Broadcast::channel('bilan-updates', function ($user) {
 
 /*
 |--------------------------------------------------------------------------
-| 🆕 NOTIFICATIONS COMPTABLES CHANNELS
+|  NOTIFICATIONS COMPTABLES CHANNELS
 |--------------------------------------------------------------------------
 */
 
@@ -68,7 +68,7 @@ Broadcast::channel('notifications.{utilisateurId}', function ($user, $utilisateu
 
 /*
 |--------------------------------------------------------------------------
-| 🆕 SYSTEM LOGS CHANNELS
+|  SYSTEM LOGS CHANNELS
 |--------------------------------------------------------------------------
 */
 
@@ -79,7 +79,7 @@ Broadcast::channel('system-logs.{utilisateurId}', function ($user, $utilisateurI
 
 /*
 |--------------------------------------------------------------------------
-| 🆕 BUDGET ALERTS CHANNELS
+|  BUDGET ALERTS CHANNELS
 |--------------------------------------------------------------------------
 */
 
@@ -90,7 +90,7 @@ Broadcast::channel('budget-alerts.{utilisateurId}', function ($user, $utilisateu
 
 /*
 |--------------------------------------------------------------------------
-| 🆕 CANAL COMPTABLES (Rôles spécifiques)
+|  CANAL COMPTABLES (Rôles spécifiques)
 |--------------------------------------------------------------------------
 */
 
@@ -106,7 +106,7 @@ Broadcast::channel('comptables', function ($user) {
 
 /*
 |--------------------------------------------------------------------------
-| 🆕 SUIVI BUDGÉTAIRE CHANNELS
+|  SUIVI BUDGÉTAIRE CHANNELS
 |--------------------------------------------------------------------------
 */
 
@@ -117,7 +117,7 @@ Broadcast::channel('suivi-budgetaire.{utilisateurId}', function ($user, $utilisa
 
 /*
 |--------------------------------------------------------------------------
-| 🆕 PÉRIODES COMPTABLES CHANNELS
+|  PÉRIODES COMPTABLES CHANNELS
 |--------------------------------------------------------------------------
 */
 
@@ -132,7 +132,7 @@ Broadcast::channel('periodes-comptables', function ($user) {
 
 /*
 |--------------------------------------------------------------------------
-| 🆕 IMMOBILISATIONS CHANNELS
+|  IMMOBILISATIONS CHANNELS
 |--------------------------------------------------------------------------
 */
 
@@ -143,7 +143,7 @@ Broadcast::channel('immobilisations.{utilisateurId}', function ($user, $utilisat
 
 /*
 |--------------------------------------------------------------------------
-| 🆕 TVA CHANNELS
+|  TVA CHANNELS
 |--------------------------------------------------------------------------
 */
 
@@ -154,7 +154,7 @@ Broadcast::channel('tva.{utilisateurId}', function ($user, $utilisateurId) {
 
 /*
 |--------------------------------------------------------------------------
-| 🆕 RAPPROCHEMENTS BANCAIRES CHANNELS
+|  RAPPROCHEMENTS BANCAIRES CHANNELS
 |--------------------------------------------------------------------------
 */
 
@@ -165,7 +165,7 @@ Broadcast::channel('rapprochements.{utilisateurId}', function ($user, $utilisate
 
 /*
 |--------------------------------------------------------------------------
-| 🆕 JOURNAL & GRAND LIVRE CHANNELS
+|  JOURNAL & GRAND LIVRE CHANNELS
 |--------------------------------------------------------------------------
 */
 
@@ -181,7 +181,7 @@ Broadcast::channel('grand-livre.{utilisateurId}', function ($user, $utilisateurI
 
 /*
 |--------------------------------------------------------------------------
-| 🆕 BALANCE CHANNELS
+|  BALANCE CHANNELS
 |--------------------------------------------------------------------------
 */
 
@@ -192,7 +192,7 @@ Broadcast::channel('balance.{utilisateurId}', function ($user, $utilisateurId) {
 
 /*
 |--------------------------------------------------------------------------
-| 🆕 RÉSULTAT CHANNELS
+|  RÉSULTAT CHANNELS
 |--------------------------------------------------------------------------
 */
 
@@ -203,7 +203,7 @@ Broadcast::channel('resultat.{utilisateurId}', function ($user, $utilisateurId) 
 
 /*
 |--------------------------------------------------------------------------
-| 🆕 AMORTISSEMENT CHANNELS
+|  AMORTISSEMENT CHANNELS
 |--------------------------------------------------------------------------
 */
 
@@ -214,7 +214,7 @@ Broadcast::channel('amortissement.{utilisateurId}', function ($user, $utilisateu
 
 /*
 |--------------------------------------------------------------------------
-| 🆕 CANAL GLOBAL (Présence utilisateur)
+|  CANAL GLOBAL (Présence utilisateur)
 |--------------------------------------------------------------------------
 */
 

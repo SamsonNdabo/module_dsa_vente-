@@ -272,7 +272,7 @@ class ImeiService
         array $imeiIds,
         MouvementStock $mouvementSortie,
         int $factureId,
-        float $prixVente = null // ✅ AJOUT : Prix de vente unitaire
+        float $prixVente = null //  AJOUT : Prix de vente unitaire
     ): array {
         $imeis = ProduitImei::whereIn('id', $imeiIds)
             ->where('statut', ProduitImei::STATUT_RESERVE)
@@ -291,7 +291,7 @@ class ImeiService
         }
     
         foreach ($imeis as $imei) {
-            // ✅ Appel de la méthode marquerVendu() du modèle avec le prix de vente
+            //  Appel de la méthode marquerVendu() du modèle avec le prix de vente
             $imei->marquerVendu($mouvementSortie, $factureId, $prixVente);
         }
     

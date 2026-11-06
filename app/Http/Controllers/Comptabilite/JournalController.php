@@ -377,7 +377,7 @@ class JournalController extends Controller
 
             $queryForTotals = $this->applyFilters($queryForTotals, $request);
 
-            // ✅ Totaux GLOBAUX
+            //  Totaux GLOBAUX
             $totalsQuery = clone $queryForTotals;
             $allEcrituresForTotals = $totalsQuery
                 ->select('id', 'debit', 'credit', 'operation_journal_id', 'parent_ecriture_id', 'numero_ecriture')
@@ -392,7 +392,7 @@ class JournalController extends Controller
             $perPage = (int)$request->input('per_page', 100);
             $page = (int)$request->input('page', 1);
 
-            // ✅ Écritures CUMULÉES
+            //  Écritures CUMULÉES
             $cumulativeQuery = clone $queryForTotals;
             $cumulativeEcritures = $cumulativeQuery
                 ->select('id', 'debit', 'credit', 'operation_journal_id', 'parent_ecriture_id', 'numero_ecriture')
@@ -547,7 +547,7 @@ class JournalController extends Controller
 
     /**
      * 🔥 Groupe les lignes par OPÉRATION
-     * ✅ Utilise la MÊME clé que countOperationsDistinctes → cohérence garantie
+     *  Utilise la MÊME clé que countOperationsDistinctes → cohérence garantie
      */
     private function groupOperations($ecritures, $dateCol): array
     {

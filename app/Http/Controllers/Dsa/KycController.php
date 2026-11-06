@@ -5,10 +5,10 @@ namespace App\Http\Controllers\Dsa;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Dsa\Concerns\ExigePermission;
 use App\Models\Client;
-use App\Models\Demande;
-use App\Models\KycPiece;
-use App\Services\KycService;
-use App\Services\RegleKycService;
+use App\Models\Kyc\Demande;
+use App\Models\Kyc\KycPiece;
+use App\Services\Client_Kyc\KycService;
+use App\Services\Client_Kyc\RegleKycService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 

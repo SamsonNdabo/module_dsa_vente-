@@ -64,8 +64,8 @@ class SeuilsLogistiqueController extends Controller
 
     return response()->json([
         'success' => true,
-        'data' => $seuils,   // ✅ ne change pas
-        'roles' => $roles   // ✅ nouvelle donnée ajoutée
+        'data' => $seuils,   //  ne change pas
+        'roles' => $roles   //  nouvelle donnée ajoutée
     ]);
 }
 
@@ -103,7 +103,7 @@ class SeuilsLogistiqueController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'devise_id' => 'required|exists:devise,id', // ✅ CORRIGÉ : devise (singulier)
+            'devise_id' => 'required|exists:devise,id', //  CORRIGÉ : devise (singulier)
             'montant_max_approbation_superieur' => 'required|numeric|min:0',
             'niveau_superieur_role' => 'required|string|max:255',
             'actif' => 'sometimes|boolean'
@@ -116,7 +116,7 @@ class SeuilsLogistiqueController extends Controller
             ], 422);
         }
 
-        // ✅ Vérifier si la devise existe
+        //  Vérifier si la devise existe
         $devise = Devise::find($request->devise_id);
         if (!$devise) {
             return response()->json([
@@ -125,7 +125,7 @@ class SeuilsLogistiqueController extends Controller
             ], 404);
         }
 
-        // ✅ Vérifier si un seuil existe déjà pour cette devise
+        //  Vérifier si un seuil existe déjà pour cette devise
         $seuilExistant = SeuilLogistique::where('devise_id', $request->devise_id)->first();
         if ($seuilExistant) {
             return response()->json([
@@ -135,7 +135,7 @@ class SeuilsLogistiqueController extends Controller
             ], 409);
         }
 
-        // ✅ Création
+        //  Création
         $seuil = SeuilLogistique::create([
             'devise_id' => $request->devise_id,
             'montant_max_approbation_superieur' => $request->montant_max_approbation_superieur,
@@ -157,7 +157,7 @@ class SeuilsLogistiqueController extends Controller
      */
     public function update(Request $request, $id)
     {
-        // ✅ Vérifier si le seuil existe
+        //  Vérifier si le seuil existe
         $seuil = SeuilLogistique::find($id);
         if (!$seuil) {
             return response()->json([
@@ -167,7 +167,7 @@ class SeuilsLogistiqueController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'devise_id' => 'sometimes|exists:devise,id', // ✅ CORRIGÉ : devise (singulier)
+            'devise_id' => 'sometimes|exists:devise,id', //  CORRIGÉ : devise (singulier)
             'montant_max_approbation_superieur' => 'sometimes|numeric|min:0',
             'niveau_superieur_role' => 'sometimes|string|max:255',
             'actif' => 'sometimes|boolean'
@@ -180,7 +180,7 @@ class SeuilsLogistiqueController extends Controller
             ], 422);
         }
 
-        // ✅ Si devise_id est fourni, vérifier son existence
+        //  Si devise_id est fourni, vérifier son existence
         if ($request->has('devise_id') && $request->devise_id != $seuil->devise_id) {
             $devise = Devise::find($request->devise_id);
             if (!$devise) {
@@ -202,7 +202,7 @@ class SeuilsLogistiqueController extends Controller
             }
         }
 
-        // ✅ Préparer les données à mettre à jour
+        //  Préparer les données à mettre à jour
         $data = [];
         if ($request->has('devise_id')) {
             $data['devise_id'] = $request->devise_id;
@@ -217,7 +217,7 @@ class SeuilsLogistiqueController extends Controller
             $data['actif'] = $request->boolean('actif');
         }
 
-        // ✅ Mise à jour
+        //  Mise à jour
         $seuil->update($data);
 
         return response()->json([
@@ -326,7 +326,7 @@ class SeuilsLogistiqueController extends Controller
             ],
         ];
 
-        // ✅ CORRIGÉ : Utilisation de la table 'devise' (singulier)
+        //  CORRIGÉ : Utilisation de la table 'devise' (singulier)
         $devises = Devise::select('id', 'code', 'nom', 'symbole')->get();
 
         $result = $devises->map(function($devise) use ($defaultConfig) {

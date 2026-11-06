@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Log;
 
 class FournisseurController extends Controller
 {
-    // ✅ Constantes
+    //  Constantes
     private const ROLES_FULL_ACCESS = ['SUPER_ADMIN', 'AUDITEUR', 'CHEF_OPERATIONS'];
     private const STATUTS_VALIDES = ['ACTIF', 'INACTIF', 'SUSPENDU'];
 
@@ -32,14 +32,14 @@ class FournisseurController extends Controller
             ], 403);
         }
 
-        // ✅ Sélection des colonnes nécessaires
+        //  Sélection des colonnes nécessaires
         $query = Fournisseur::select([
             'id', 'nom', 'email', 'telephone', 'adresse',
             'ville', 'produits', 'code_fournisseur', 'statut',
             'created_at', 'updated_at'
         ]);
 
-        // ✅ Filtres
+        //  Filtres
         if ($request->filled('statut')) {
             $query->where('statut', $request->statut);
         }
@@ -64,16 +64,16 @@ class FournisseurController extends Controller
             });
         }
 
-        // ✅ Tri
+        //  Tri
         $orderBy = $request->get('order_by', 'nom');
         $orderDir = $request->get('order_dir', 'asc');
         $query->orderBy($orderBy, $orderDir);
 
-        // ✅ Pagination
+        //  Pagination
         $perPage = $request->get('per_page', 20);
         $fournisseurs = $query->paginate($perPage);
 
-        // ✅ Statistiques - UNE SEULE REQUÊTE
+        //  Statistiques - UNE SEULE REQUÊTE
         $stats = $this->getFournisseurStats();
 
         return response()->json([
@@ -383,7 +383,7 @@ class FournisseurController extends Controller
 
         $topFournisseurs = Fournisseur::getTopFournisseurs($limit, $criteria);
 
-        // ✅ Statistiques globales - UNE SEULE REQUÊTE
+        //  Statistiques globales - UNE SEULE REQUÊTE
         $stats = $this->getGlobalStats();
 
         return response()->json([
@@ -428,7 +428,7 @@ class FournisseurController extends Controller
 
         $stats = $fournisseur->statistiques_commandes;
 
-        // ✅ Détails optimisés
+        //  Détails optimisés
         $details = $this->getFournisseurDetails($id);
 
         return response()->json([

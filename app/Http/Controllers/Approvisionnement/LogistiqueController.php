@@ -40,17 +40,17 @@ class LogistiqueController extends Controller
             ], 403);
         }
 
-        // ✅ 1. Récupérer les statistiques en UNE SEULE requête groupée
+        //  1. Récupérer les statistiques en UNE SEULE requête groupée
         $stats = $this->getDashboardStats();
 
-        // ✅ 2. Récupérer les demandes avec les relations nécessaires uniquement
+        //  2. Récupérer les demandes avec les relations nécessaires uniquement
         $enAttenteLogistique = Approvisionnement::enAttenteLogistique()
             ->with([
                 'destinationSuccursale:id,nom',
                 'sourceDecidee:id,nom',
                 'demandeur:id,nom_complet',
                 'validateurOps:id,nom_complet',
-                // ✅ Ne charger que l'ID et le nom des produits pour réduire la taille
+                //  Ne charger que l'ID et le nom des produits pour réduire la taille
                 'lignes' => function($query) {
                     $query->select('id', 'approvisionnement_id', 'produit_id', 'quantite_demandee')
                         ->with(['produit:id,nom']);
@@ -63,7 +63,7 @@ class LogistiqueController extends Controller
                 'demandeur_id', 'validateur_ops_id', 'created_at'
             ])
             ->orderBy('date_validation_ops', 'asc')
-            ->limit(100) // ✅ Limiter pour éviter le surcharge
+            ->limit(100) //  Limiter pour éviter le surcharge
             ->get();
 
         return response()->json([
@@ -78,7 +78,7 @@ class LogistiqueController extends Controller
      */
     private function getDashboardStats(): array
     {
-        // ✅ Une seule requête avec des sous-requêtes optimisées
+        //  Une seule requête avec des sous-requêtes optimisées
         $stats = Approvisionnement::selectRaw("
             COUNT(CASE WHEN statut_operation = 'EN_ATTENTE_LOGISTIQUE' THEN 1 END) as en_attente_logistique,
             COUNT(CASE WHEN statut_operation = 'EN_ATTENTE_APPROBATION_LOGISTIQUE' THEN 1 END) as en_attente_approbation,
@@ -114,7 +114,7 @@ class LogistiqueController extends Controller
             ], 403);
         }
     
-        // ✅ Chargement optimisé : sélectionner uniquement les colonnes nécessaires
+        //  Chargement optimisé : sélectionner uniquement les colonnes nécessaires
         $demande = Approvisionnement::with([
             'destinationSuccursale:id,nom,adresse,telephone,email',
             'sourceDecidee:id,nom,adresse,telephone,email',
@@ -146,18 +146,18 @@ class LogistiqueController extends Controller
             ], 422);
         }
     
-        // ✅ Récupérer toutes les succursales actives
+        //  Récupérer toutes les succursales actives
         $succursales = Succursale::where('est_active', true)
             ->select('id', 'nom', 'code', 'ville', 'adresse')
             ->orderBy('nom')
             ->get();
     
-        // ✅ Récupérer les devises
+        //  Récupérer les devises
         $devises = Devise::orderBy('code')
             ->select('id', 'code', 'nom', 'symbole')
             ->get();
     
-        // ✅ Récupérer les succursales intermédiaires possibles (toutes sauf la source et la destination)
+        //  Récupérer les succursales intermédiaires possibles (toutes sauf la source et la destination)
         $succursalesIntermediaires = Succursale::where('est_active', true)
             ->where('id', '!=', $demande->destination_succursale_id)
             ->when($demande->source_decidee_id, function($query) use ($demande) {
@@ -171,7 +171,7 @@ class LogistiqueController extends Controller
             'success' => true,
             'data' => $demande,
             'succursales' => $succursales,
-            'succursales_intermediaires' => $succursalesIntermediaires, // ✅ Nouvelle clé pour les intermédiaires
+            'succursales_intermediaires' => $succursalesIntermediaires, //  Nouvelle clé pour les intermédiaires
             'devises' => $devises
         ]);
     }
@@ -190,7 +190,7 @@ class LogistiqueController extends Controller
             ], 403);
         }
 
-        // ✅ Sélectionner uniquement les colonnes nécessaires
+        //  Sélectionner uniquement les colonnes nécessaires
         $demande = Approvisionnement::lockForUpdate()
             ->with([
                 'lignes' => function($query) {
@@ -226,7 +226,7 @@ class LogistiqueController extends Controller
             ], 422);
         }
 
-        // ✅ Vérification du stock optimisée en UNE SEULE requête
+        //  Vérification du stock optimisée en UNE SEULE requête
         $erreursStock = $this->verifierStockSourceOptimise($demande, $request->source_decidee_id);
 
         if (!empty($erreursStock)) {
@@ -324,7 +324,7 @@ class LogistiqueController extends Controller
      */
     private function verifierStockSourceOptimise(Approvisionnement $demande, int $sourceId): array
     {
-        // ✅ Récupérer tous les stocks en UNE SEULE requête
+        //  Récupérer tous les stocks en UNE SEULE requête
         $produitIds = $demande->lignes->pluck('produit_id')->toArray();
 
         $stocks = StockSuccursale::where('succursale_id', $sourceId)
@@ -428,12 +428,12 @@ class LogistiqueController extends Controller
                 "Seuil dépassé: " . number_format($verificationSeuil['seuil_approbation'], 2) . " " . ($devise ? $devise->code : '')
         ];
 
-        // ✅ Mise à jour optimisée (sans recharger tout le modèle)
+        //  Mise à jour optimisée (sans recharger tout le modèle)
         $demande->update($updateData);
 
         $this->notifierApprobationSuperieureRequise($demande, $user, $verificationSeuil, $sourceSuccursale);
 
-        // ✅ Recharger uniquement les relations nécessaires
+        //  Recharger uniquement les relations nécessaires
         $demande->load([
             'sourceDecidee:id,nom',
             'destinationSuccursale:id,nom',
@@ -489,7 +489,7 @@ class LogistiqueController extends Controller
 
         $this->notifierValidationLogistique($demande, $user, $typeDemande, $sourceSuccursale);
 
-        // ✅ Recharger uniquement les relations nécessaires
+        //  Recharger uniquement les relations nécessaires
         $demande->load([
             'sourceDecidee:id,nom',
             'destinationSuccursale:id,nom',
@@ -510,7 +510,7 @@ class LogistiqueController extends Controller
      */
     private function reserverStockSource(Approvisionnement $demande, int $sourceId): void
     {
-        // ✅ Mise à jour en BULK pour éviter N+1
+        //  Mise à jour en BULK pour éviter N+1
         $produitIds = $demande->lignes->pluck('produit_id')->toArray();
         $quantites = [];
 
@@ -599,7 +599,7 @@ class LogistiqueController extends Controller
         $this->notifierDestinatairesSpecifiques([
             'destinataires' => ['type' => 'role', 'code' => 'CHEF_AGENCE'],
             'type' => 'APPROVISIONNEMENT_VALIDE',
-            'titre' => "✅ Validation logistique terminée",
+            'titre' => " Validation logistique terminée",
             'message' => "Demande #{$demande->reference} - Source: " . ($sourceSuccursale->nom ?? 'N/A') . " - {$typeDemandeTexte}",
             'donnees' => [
                 'demande_id' => $demande->id,

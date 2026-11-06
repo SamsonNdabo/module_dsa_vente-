@@ -2,10 +2,10 @@
 
 namespace App\Workflow;
 
-use App\Models\Demande;
+use App\Models\Kyc\Demande;
 use App\Models\Utilisateur;
-use App\Services\ConsentementService;
-use App\Services\RegleKycService;
+use App\Services\Client_Kyc\ConsentementService;
+use App\Services\Client_Kyc\RegleKycService;
 use Illuminate\Validation\ValidationException;
 
 class CompteHandler implements DemandeHandler
@@ -13,14 +13,12 @@ class CompteHandler implements DemandeHandler
     public function avant(Demande $demande, string $cible, ?Utilisateur $acteur, array $donnees): void
     {
         if ($cible === 'DOSSIER_SOUMIS') {
-            // 1. Produit et partenaire obligatoires
             if (! $demande->produit_dsa_id || ! $demande->partenaire_id) {
                 throw ValidationException::withMessages([
                     'produit_dsa_id' => 'Produit et partenaire obligatoires.',
                 ]);
             }
 
-            // 2. Consentement PARTAGE_PARTENAIRE obligatoire
             $consentement = app(ConsentementService::class);
             if (! $consentement->aConsenti($demande->client, 'PARTAGE_PARTENAIRE')) {
                 throw ValidationException::withMessages([
@@ -28,27 +26,24 @@ class CompteHandler implements DemandeHandler
                 ]);
             }
 
-            // 3. Évaluation des règles KYC du partenaire
+            $typeProduit = $demande->payload['type_produit'] ?? 'STOCK';
             $eval = app(RegleKycService::class)->evaluer(
                 $demande->client,
                 $demande->partenaire_id,
-                $demande->produit_dsa_id
+                $demande->produit_dsa_id,
+                $typeProduit
             );
 
             if ($eval['sans_regle']) {
                 throw ValidationException::withMessages([
-                    'kyc' => 'Aucune règle KYC définie par ce partenaire pour ce produit : configuration requise avant soumission.',
+                    'kyc' => 'Aucune règle KYC définie par ce partenaire pour ce produit.',
                 ]);
             }
 
             if (! $eval['complet']) {
                 $messages = [];
-                if (! empty($eval['manquantes'])) {
-                    $messages[] = 'Documents manquants : ' . implode(', ', $eval['manquantes']);
-                }
-                if (! empty($eval['expirees'])) {
-                    $messages[] = 'Documents expirés ou hors durée de validité : ' . implode(', ', $eval['expirees']);
-                }
+                if (! empty($eval['manquantes'])) $messages[] = 'Documents manquants : ' . implode(', ', $eval['manquantes']);
+                if (! empty($eval['expirees']))   $messages[] = 'Documents expirés : ' . implode(', ', $eval['expirees']);
                 throw ValidationException::withMessages(['kyc' => $messages]);
             }
         }
@@ -80,7 +75,23 @@ class CompteHandler implements DemandeHandler
             $demande->compte->update($maj);
         }
 
-        // KYC déjà validé et exigences remplies : on avance automatiquement
+        // 🆕 ÉPARGNE : si le payload contient compte_epargne_id, mettre à jour le compte épargne
+        $compteEpargneId = $demande->payload['compte_epargne_id'] ?? null;
+        if ($compteEpargneId) {
+            $compteEpargne = \App\Models\CompteEpargne::find($compteEpargneId);
+            if ($compteEpargne) {
+                if ($demande->statut === 'COMPTE_OUVERT' || $demande->statut === 'ACTIF') {
+                    $compteEpargne->update([
+                        'statut'            => 'OUVERT',
+                        'date_ouverture'    => now()->toDateString(),
+                        'numero_compte'     => $donnees['numero_compte'] ?? $compteEpargne->numero_compte,
+                    ]);
+                } elseif ($demande->statut === 'REJETE') {
+                    $compteEpargne->update(['statut' => 'BLOQUE']);
+                }
+            }
+        }
+
         if ($demande->statut === 'DOSSIER_SOUMIS') {
             app(RegleKycService::class)->avancerSiPret($demande);
         }

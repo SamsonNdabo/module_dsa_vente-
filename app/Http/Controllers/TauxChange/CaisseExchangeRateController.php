@@ -99,7 +99,7 @@ class CaisseExchangeRateController extends Controller
     }
 
     /**
-     * ✅ NOUVELLE MÉTHODE : Notifier les chefs d'agence d'une demande de changement de taux
+     *  NOUVELLE MÉTHODE : Notifier les chefs d'agence d'une demande de changement de taux
      */
     protected function notifierChangementTaux($taux, $caisse, $ancien)
     {

@@ -149,7 +149,7 @@ class EcritureController extends Controller
             }
         }
 
-        // ✅ Ajouter les informations du Plan Comptable
+        //  Ajouter les informations du Plan Comptable
         $operation->compte_debit_info  = PlanComptable::where('numero', $operation->compte_debit)->first();
         $operation->compte_credit_info = PlanComptable::where('numero', $operation->compte_credit)->first();
 
@@ -451,7 +451,7 @@ class EcritureController extends Controller
         $this->applyFilters($query, $filters);
         $ecritures = $query->get();
 
-        // ✅ Utiliser le sens du compte depuis le Plan Comptable
+        //  Utiliser le sens du compte depuis le Plan Comptable
         $sensDebit = $compte->fonctionnement_debit === '+' || $compte->position_bilan === 'actif';
         
         $solde = 0;
@@ -664,7 +664,7 @@ class EcritureController extends Controller
             $data['entite_id'] = $request->entite_id;
         }
     
-        // ✅ Ajouter les champs d'amortissement optionnels
+        //  Ajouter les champs d'amortissement optionnels
         if ($request->has('forcer_amortissement')) {
             $data['forcer_amortissement'] = $request->forcer_amortissement;
         }
@@ -709,7 +709,7 @@ class EcritureController extends Controller
             $data['entite_id'] = $request->entite_id;
         }
     
-        // ✅ Ajouter les champs d'amortissement optionnels
+        //  Ajouter les champs d'amortissement optionnels
         if ($request->has('forcer_amortissement')) {
             $data['forcer_amortissement'] = $request->forcer_amortissement;
         }
@@ -811,8 +811,8 @@ class EcritureController extends Controller
     }
 
     /**
-     * ✅ Vérification de la configuration d'immobilisation
-     * ✅ NON BLOQUANTE : Retourne des informations sans empêcher l'enregistrement
+     *  Vérification de la configuration d'immobilisation
+     *  NON BLOQUANTE : Retourne des informations sans empêcher l'enregistrement
      */
     public function checkImmobilisationConfig(Request $request): JsonResponse
     {
@@ -822,7 +822,7 @@ class EcritureController extends Controller
         $reference = $request->reference ?? '';
         $operationLibelle = $request->operation_libelle ?? '';
         
-        // ✅ Vérifier si c'est un compte d'immobilisation
+        //  Vérifier si c'est un compte d'immobilisation
         $compteImmobilisation = $this->detecterCompteImmobilisation($compteDebit, $compteCredit);
         
         if (!$compteImmobilisation) {
@@ -836,7 +836,7 @@ class EcritureController extends Controller
         
         $comptesAVerifier = array_filter([$compteDebit, $compteCredit]);
         
-        // ✅ Vérifier si une immobilisation existe déjà
+        //  Vérifier si une immobilisation existe déjà
         $query = ImmobilisationsComptable::where('est_actif', true)
             ->where(function ($q) use ($comptesAVerifier) {
                 foreach ($comptesAVerifier as $compte) {
@@ -846,7 +846,7 @@ class EcritureController extends Controller
                 }
             });
         
-        // ✅ Recherche par libellé et référence
+        //  Recherche par libellé et référence
         if (!empty($libelle) && !empty($reference)) {
             $immo = (clone $query)
                 ->where('libelle', $libelle)
@@ -871,7 +871,7 @@ class EcritureController extends Controller
             }
         }
         
-        // ✅ Récupérer les immobilisations existantes pour ce compte
+        //  Récupérer les immobilisations existantes pour ce compte
         $immobilisationsExistantes = $query->get(['id', 'code', 'reference', 'libelle']);
         
         if ($immobilisationsExistantes->isNotEmpty()) {
@@ -904,7 +904,7 @@ class EcritureController extends Controller
     }
     
     /**
-     * ✅ Détecter si un compte est une immobilisation
+     *  Détecter si un compte est une immobilisation
      */
     private function detecterCompteImmobilisation(string $compteDebit, string $compteCredit): ?string
     {
@@ -920,7 +920,7 @@ class EcritureController extends Controller
     }
     
     /**
-     * ✅ Vérifier si un compte est une immobilisation
+     *  Vérifier si un compte est une immobilisation
      */
     private function isCompteImmobilisation(string $compte): bool
     {

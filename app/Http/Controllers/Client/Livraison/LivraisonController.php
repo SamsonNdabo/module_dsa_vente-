@@ -49,7 +49,7 @@ public function index(Request $request)
             ], 401);
         }
 
-        // ✅ Suppression de 'succursale_id' qui n'existe pas dans la table livraisons
+        //  Suppression de 'succursale_id' qui n'existe pas dans la table livraisons
         $query = Livraison::select([
             'id', 'reference', 'commande_id', 'client_id', 'statut',
             'transporteur', 'numero_suivi', 'livreur_id',
@@ -170,7 +170,7 @@ public function index(Request $request)
                 ], 401);
             }
 
-            // ✅ Suppression de 'succursale_id' qui n'existe pas
+            //  Suppression de 'succursale_id' qui n'existe pas
             $livraison = Livraison::select([
                 'id', 'reference', 'commande_id', 'client_id', 'statut',
                 'transporteur', 'numero_suivi', 'adresse_livraison',

@@ -30,7 +30,7 @@ class LotsCheckCommand extends Command
                     if ($this->option('fix')) {
                         $stock->quantite_disponible = $result['quantite_lots'];
                         $stock->save();
-                        $this->info("   ✅ Corrigé.");
+                        $this->info("    Corrigé.");
                     }
 
                     $incoherences++;
@@ -38,7 +38,7 @@ class LotsCheckCommand extends Command
             }
         });
 
-        $this->info("✅ Vérification terminée. {$incoherences} incohérence(s).");
+        $this->info(" Vérification terminée. {$incoherences} incohérence(s).");
         return 0;
     }
 }

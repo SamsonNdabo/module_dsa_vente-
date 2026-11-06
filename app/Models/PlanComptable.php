@@ -53,7 +53,7 @@ class PlanComptable extends Model
                     'nom' => $compte->nom
                 ]);
 
-                // 🆕 LOG
+                //  LOG
                 SysLogComptable::create([
                     'utilisateur_id' => Auth::id() ?? 1,
                     'action' => 'creation_compte',
@@ -81,7 +81,7 @@ class PlanComptable extends Model
                     'numero' => $compte->numero
                 ]);
 
-                // 🆕 LOG
+                //  LOG
                 SysLogComptable::create([
                     'utilisateur_id' => Auth::id() ?? 1,
                     'action' => 'modification_compte',
@@ -109,7 +109,7 @@ class PlanComptable extends Model
                     'numero' => $compte->numero
                 ]);
 
-                // 🆕 LOG
+                //  LOG
                 SysLogComptable::create([
                     'utilisateur_id' => Auth::id() ?? 1,
                     'action' => 'suppression_compte',

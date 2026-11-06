@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Dsa;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Dsa\Concerns\ExigePermission;
-use App\Models\Demande;
-use App\Services\WorkflowService;
+use App\Models\Kyc\Demande;
+use App\Services\Client_Kyc\WorkflowService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
@@ -25,10 +25,11 @@ class DemandeController extends Controller
         $paginator = Demande::visiblePour($request->user())
             ->with([
                 'client:id,code_client,nom_complet,telephone,kyc_statut',
-                'agent:id,code,prenom,nom',
+                'agent:id,code,utilisateur_id,statut',           // ← AgentDsa
+                'agent.utilisateur:id,nom_complet,email',        // ← Utilisateur
                 'partenaire:id,code,nom',
                 'produit:id,code,nom,type',
-                'kycDossier.pieces',       // ← AJOUT CRITIQUE
+                'kycDossier.pieces',
             ])
             ->when($request->filled('type'),          fn ($q) => $q->where('type', $request->string('type')))
             ->when($request->filled('statut'),        fn ($q) => $q->where('statut', $request->string('statut')))

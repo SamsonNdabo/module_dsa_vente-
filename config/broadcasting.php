@@ -2,7 +2,7 @@
 
 return [
 
-    'default' => 'log',
+    'default' => env('BROADCAST_CONNECTION', 'pusher'),
 
     'connections' => [
 

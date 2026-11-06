@@ -49,7 +49,7 @@ class BudgetSituation extends Model
                 'situation_finale' => $situation->situation_finale,
             ], 'INFO');
 
-            // 🆕 LOG + BROADCAST
+            //  LOG + BROADCAST
             try {
                 $rubrique = $situation->budgetRubrique ? $situation->budgetRubrique->libelle : 'N/A';
                 $periode = $situation->periodeComptable ? $situation->periodeComptable->code : 'N/A';
@@ -74,7 +74,7 @@ class BudgetSituation extends Model
                 $situation->logAudit('MODIFICATION_SITUATION_BUDGET', $situation->getOriginal(), $changed, 'HAUTE');
             }
 
-            // 🆕 LOG + BROADCAST
+            //  LOG + BROADCAST
             try {
                 $rubrique = $situation->budgetRubrique ? $situation->budgetRubrique->libelle : 'N/A';
                 $log = SysLogComptable::create([
@@ -95,7 +95,7 @@ class BudgetSituation extends Model
         static::deleted(function ($situation) {
             $situation->logAudit('SUPPRESSION_SITUATION_BUDGET', $situation->toArray(), null, 'CRITIQUE');
 
-            // 🆕 LOG + BROADCAST
+            //  LOG + BROADCAST
             try {
                 $rubrique = $situation->budgetRubrique ? $situation->budgetRubrique->libelle : 'N/A';
                 $log = SysLogComptable::create([

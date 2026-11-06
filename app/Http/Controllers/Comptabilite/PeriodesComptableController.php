@@ -37,7 +37,7 @@ class PeriodesComptableController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '✅ Période créée avec succès !',
+            'message' => ' Période créée avec succès !',
             'periode' => $periode
         ]);
     }
@@ -72,7 +72,7 @@ class PeriodesComptableController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => '✅ Période mise à jour !',
+            'message' => ' Période mise à jour !',
             'periode' => $periode
         ]);
     }

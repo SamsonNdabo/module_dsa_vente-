@@ -271,7 +271,7 @@ class OperationChangeController extends Controller
                 'spread_achat'     => $tauxAchat,
                 'spread_vente'     => $tauxVente,
                 'commission'       => $commission,
-                'exchange_rate_id' => $exchangeRateId, // ✅ toujours un ID de exchange_rates
+                'exchange_rate_id' => $exchangeRateId, //  toujours un ID de exchange_rates
                 'caisse_exchange_rate_id'   => $caisseExchangeRateId,
                 'succursale_exchange_rate_id' => $succursaleExchangeRateId,
                 'niveau_alerte'    => 'NORMAL',
@@ -382,7 +382,7 @@ class OperationChangeController extends Controller
                 'spread_achat'     => $tauxAchat,
                 'spread_vente'     => $tauxVente,
                 'commission'       => 0,
-                'exchange_rate_id' => $exchangeRateId, // ✅ toujours un ID de exchange_rates
+                'exchange_rate_id' => $exchangeRateId, //  toujours un ID de exchange_rates
                 'caisse_exchange_rate_id'   => $caisseExchangeRateId,
                 'succursale_exchange_rate_id' => $succursaleExchangeRateId,
                 'niveau_alerte'    => $seuil->niveau_alerte,

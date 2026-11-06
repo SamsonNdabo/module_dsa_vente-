@@ -54,7 +54,7 @@ class EchecEcriture extends Model
     {
         static::created(function (EchecEcriture $echec) {
             try {
-                // 🆕 LOG SYSTÈME
+                //  LOG SYSTÈME
                 SysLogComptable::create([
                     'utilisateur_id' => $echec->utilisateur_id,
                     'action' => 'echec_ecriture',
@@ -64,7 +64,7 @@ class EchecEcriture extends Model
                     'created_at' => now(),
                 ]);
 
-                // 🆕 NOTIFICATION (SANS BOUTON)
+                //  NOTIFICATION (SANS BOUTON)
                 $notification = NotificationComptable::create([
                     'utilisateur_id' => $echec->utilisateur_id,
                     'type' => 'anomalie',
@@ -83,7 +83,7 @@ class EchecEcriture extends Model
                     'created_at' => now(),
                 ]);
 
-                // 🆕 BROADCAST REVERB
+                //  BROADCAST REVERB
                 broadcast(new NotificationComptableEvent($notification, $echec->utilisateur_id, 'created'))->toOthers();
 
             } catch (\Exception $e) {
@@ -176,7 +176,7 @@ class EchecEcriture extends Model
     {
         return match ($this->statut) {
             'echec' => '❌',
-            'corrige' => '✅',
+            'corrige' => '',
             'ignore' => '⚠️',
             default => '❓',
         };

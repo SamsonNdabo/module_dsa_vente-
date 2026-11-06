@@ -13,19 +13,28 @@ class SuggestionHistorique extends Model
 
     protected $table = 'suggestions_historiques';
 
-    public $timestamps = false;
+    //  On garde created_at automatique, mais PAS updated_at
+    const UPDATED_AT = null;
 
     protected $fillable = [
-        'suggestion_id', 'utilisateur_id', 'action',
-        'ancien_statut', 'nouveau_statut',
-        'ancien_utilisateur_id', 'nouveau_utilisateur_id',
-        'commentaire', 'created_at',
+        'suggestion_id',
+        'utilisateur_id',
+        'action',
+        'ancien_statut',
+        'nouveau_statut',
+        'ancien_utilisateur_id',
+        'nouveau_utilisateur_id',
+        'commentaire',
+        'created_at',
     ];
 
     protected $casts = [
         'created_at' => 'datetime',
     ];
 
+    // ============================================================
+    // CONSTANTES D'ACTIONS
+    // ============================================================
     public const ACTION_CREATION          = 'CREATION';
     public const ACTION_AFFECTATION       = 'AFFECTATION';
     public const ACTION_CHANGEMENT_STATUT = 'CHANGEMENT_STATUT';
@@ -33,9 +42,9 @@ class SuggestionHistorique extends Model
     public const ACTION_RESOLUTION        = 'RESOLUTION';
     public const ACTION_REJET             = 'REJET';
 
-    // -------------------------
-    // Relations
-    // -------------------------
+    // ============================================================
+    // RELATIONS
+    // ============================================================
     public function suggestion(): BelongsTo
     {
         return $this->belongsTo(Suggestion::class, 'suggestion_id');

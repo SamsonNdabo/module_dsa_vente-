@@ -5,9 +5,9 @@ namespace App\Http\Controllers\Dsa;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Dsa\Concerns\ExigePermission;
 use App\Models\Client;
-use App\Models\ConsentementClient;
-use App\Models\Demande;
-use App\Services\ConsentementService;
+use App\Models\Kyc\ConsentementClient;
+use App\Models\Kyc\Demande;
+use App\Services\Client_Kyc\ConsentementService;
 use Illuminate\Http\Request;
 
 class ConsentementController extends Controller

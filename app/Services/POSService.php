@@ -14,6 +14,7 @@ use App\Models\MouvementStock;
 use App\Services\ImeiService;
 use App\Services\EcritureService;
 use App\Services\RemiseService;
+use App\Services\Campagne\CampagneOperationTracker;   // ← AJOUT
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -25,17 +26,20 @@ class POSService
     protected KelPayService $kelPayService;
     protected EcritureService $ecritureService;
     protected ImeiService $imeiService;
+    protected CampagneOperationTracker $campagneTracker;   // ← AJOUT
 
     public function __construct(
         RemiseService $remiseService,
         KelPayService $kelPayService,
         EcritureService $ecritureService,
-        ImeiService $imeiService
+        ImeiService $imeiService,
+        CampagneOperationTracker $campagneTracker         // ← AJOUT
     ) {
         $this->remiseService = $remiseService;
         $this->kelPayService = $kelPayService;
         $this->ecritureService = $ecritureService;
         $this->imeiService = $imeiService;
+        $this->campagneTracker = $campagneTracker;
     }
 
     // ================================================================
@@ -603,66 +607,69 @@ class POSService
     protected function validerPaiementEspeces(Facture $facture, array $data, $user): array
     {
         return DB::transaction(function () use ($facture, $data, $user) {
-            
+
             $montant = (float) ($data['montant'] ?? $facture->total_ttc);
             $totalTTC = (float) $facture->total_ttc;
-            
-            // ✅ Tolérance de 0.01 pour les erreurs d'arrondi
+
+            // Tolérance de 0.01 pour les erreurs d'arrondi
             if ($montant < $totalTTC - 0.01) {
                 throw new \Exception("Le montant payé est inférieur au total.");
             }
-            
+
             $montant = max($montant, $totalTTC);
-    
+
             // ============================================================
             // SORTIE DE STOCK AVEC IMEI
             // ============================================================
             $this->appliquerSortieStock($facture);
-    
-            // ✅ RECHARGER COMPLÈTEMENT LA FACTURE avec les relations
+
+            // Recharger complètement la facture avec les relations
             $facture = Facture::with(['succursale.entite', 'client'])
                 ->find($facture->id);
-            
-            // ✅ Si la succursale est toujours null, on la récupère manuellement
+
             if (!$facture->succursale) {
                 $succursale = \App\Models\Succursale::with('entite')
                     ->find($facture->succursale_id);
                 $facture->setRelation('succursale', $succursale);
             }
-    
+
             $paiementData = [
                 'operation_libelle' => 'VENTE ' . $facture->reference,
-                'mode_paiement' => $data['mode_paiement'] ?? 'ESPECES',
-                'montant' => $montant,
+                'mode_paiement'     => $data['mode_paiement'] ?? 'ESPECES',
+                'montant'           => $montant,
                 'reference_externe' => $data['reference_externe'] ?? null,
-                'details_paiement' => $data['details_paiement'] ?? null,
-                'notes' => $data['notes'] ?? null,
+                'details_paiement'  => $data['details_paiement'] ?? null,
+                'notes'             => $data['notes'] ?? null,
             ];
             $paiement = $this->creerPaiement($facture, $paiementData);
-    
-            // ✅ CRÉDITER LA CAISSE (passer un array)
+
+            // CRÉDITER LA CAISSE
             $this->validerEtCrediterCaisse($facture, ['montant' => $montant], $user);
-    
+
             if ($facture->client) {
                 $this->updateClientStats($facture->client, $facture->total_ttc);
             }
-    
+
             $facture->update([
-                'statut' => 'PAYEE',
+                'statut'        => 'PAYEE',
                 'date_paiement' => now(),
                 'montant_regle' => $montant,
-                'montant_du' => 0,
+                'montant_du'    => 0,
             ]);
-    
+
+            // 🆕 ENREGISTREMENT DANS LA CAMPAGNE ACTIVE (une seule opération par facture)
+            $facture->refresh();
+            $this->enregistrerVenteDansCampagne($facture, $user);
+
             return [
-                'statut' => 'PAYEE',
-                'facture' => $facture->fresh(['lignes.produit', 'client']),
-                'paiement' => $paiement,
-                'message' => 'Vente payée',
+                'statut'    => 'PAYEE',
+                'facture'   => $facture->fresh(['lignes.produit', 'client']),
+                'paiement'  => $paiement,
+                'message'   => 'Vente payée',
             ];
         });
     }
-    /**
+        /**
      * ================================================================
      * INITIER UN PAIEMENT MOBILE MONEY
      * ================================================================
@@ -713,7 +720,7 @@ class POSService
             }
         }
     
-        // ✅ VÉRIFIER LA DISPONIBILITÉ DES IMEI
+        //  VÉRIFIER LA DISPONIBILITÉ DES IMEI
         $facture->load(['lignes.produit']);
         foreach ($facture->lignes as $ligne) {
             if ($ligne->produit->gere_imei) {
@@ -858,94 +865,82 @@ class POSService
      * FINALISER PAIEMENT MOBILE MONEY
      * ================================================================
      */
-   protected function finaliserPaiementMobileMoney(
-    Facture $facture,
-    array $response,
-    string $transactionId,
-    $user
+   pprotected function finaliserPaiementMobileMoney(
+        Facture $facture,
+        array $response,
+        string $transactionId,
+        $user
     ): array {
-    
         $statutKelPay = strtoupper(trim((string) ($response['transactionstatus'] ?? '')));
-    
+
         if ($statutKelPay !== 'DELIVERED') {
             Log::critical('Tentative de finalisation sans DELIVERED', [
-                'facture_id' => $facture->id,
+                'facture_id'     => $facture->id,
                 'transaction_id' => $transactionId,
-                'statut_kelpay' => $statutKelPay,
+                'statut_kelpay'  => $statutKelPay,
             ]);
             throw new \Exception('Paiement Mobile Money non confirmé par KelPay.');
         }
-    
+
         return DB::transaction(function () use ($facture, $response, $transactionId, $user) {
-    
-            // ✅ Charger la facture avec les relations de base
+
             $facture = Facture::query()
                 ->with(['lignes.produit', 'client'])
                 ->where('id', $facture->id)
                 ->lockForUpdate()
                 ->firstOrFail();
-    
+
             if ($facture->statut === 'PAYEE') {
                 return [
                     'success' => true,
-                    'statut' => 'PAYEE',
+                    'statut'  => 'PAYEE',
                     'message' => 'Cette facture est déjà payée.',
                     'facture' => $facture,
                 ];
             }
-    
+
             if ($facture->statut !== 'EN_ATTENTE_PAIEMENT') {
                 throw new \Exception('La facture ne peut pas être finalisée. Statut actuel : ' . $facture->statut);
             }
-    
+
             $paiement = Paiement::where('facture_id', $facture->id)
                 ->where('reference_externe', $transactionId)
                 ->lockForUpdate()
                 ->first();
-    
+
             if (!$paiement) {
                 throw new \Exception('Paiement Mobile Money introuvable.');
             }
-    
+
             if ($paiement->statut === 'PAYE') {
                 return [
                     'success' => true,
-                    'statut' => 'PAYEE',
+                    'statut'  => 'PAYEE',
                     'message' => 'Paiement déjà finalisé.',
                     'facture' => $facture,
                 ];
             }
-    
+
             if ($paiement->statut !== 'EN_ATTENTE') {
                 throw new \Exception('Le paiement Mobile Money n\'est pas en attente. Statut : ' . $paiement->statut);
             }
-    
+
             $montantFacture = (float) $facture->total_ttc;
             if ($montantFacture <= 0) {
                 throw new \Exception('Montant de facture invalide.');
             }
-    
-            // ============================================================
+
             // SORTIE STOCK (AVEC IMEI)
-            // ============================================================
             $this->appliquerSortieStock($facture);
-    
-            // ✅ Recharger la relation entite APRÈS la sortie de stock
             $facture->load('succursale.entite');
-    
-            // ============================================================
-            // FACTURE PAYÉE
-            // ============================================================
+
             $facture->update([
-                'statut' => 'PAYEE',
+                'statut'        => 'PAYEE',
                 'date_paiement' => now(),
                 'montant_regle' => $montantFacture,
-                'montant_du' => 0,
+                'montant_du'    => 0,
             ]);
-    
-            // ============================================================
-            // PAIEMENT PAYÉ
-            // ============================================================
+
             $paiement->update([
                 'statut' => 'PAYE',
                 'details_paiement' => array_merge(
@@ -954,33 +949,50 @@ class POSService
                     ['transactionstatus' => 'DELIVERED', 'date_confirmation' => now()->toDateTimeString()]
                 ),
             ]);
-    
-            // ✅ Maintenant la relation entite est chargée
-            // $resultatsEcritures = $this->creerEcrituresComptables($facture);
-    
-            // ============================================================
-            // STATISTIQUES CLIENT
-            // ============================================================
+
             if ($facture->client) {
                 $this->updateClientStats($facture->client, $montantFacture);
             }
-    
+
+            // 🆕 ENREGISTREMENT DANS LA CAMPAGNE ACTIVE
+            $facture->refresh();
+            $this->enregistrerVenteDansCampagne($facture, $user);
+
             Log::info('PAIEMENT MOBILE MONEY CONFIRMÉ', [
-                'facture_id' => $facture->id,
+                'facture_id'     => $facture->id,
                 'transaction_id' => $transactionId,
-                'montant' => $montantFacture,
+                'montant'        => $montantFacture,
             ]);
-    
+
             return [
-                'success' => true,
-                'statut' => 'PAYEE',
-                'message' => 'Paiement Mobile Money confirmé. Vente finalisée.',
+                'success'        => true,
+                'statut'         => 'PAYEE',
+                'message'        => 'Paiement Mobile Money confirmé. Vente finalisée.',
                 'transaction_id' => $transactionId,
-                'facture' => $facture->fresh(['client', 'lignes.produit']),
-                'paiement' => $paiement->fresh(),
-                // 'ecritures' => $resultatsEcritures['details'] ?? [],
+                'facture'        => $facture->fresh(['client', 'lignes.produit']),
+                'paiement'       => $paiement->fresh(),
             ];
         });
+    }
+
+      /**
+     * Enregistre les opérations VENTE d'une facture payée sur la campagne ACTIVE.
+     *
+     * Convention :
+     *  - 1 opération PAR PRODUIT DISTINCT de la facture
+     *  - id_operation_source = "{facture_id}:{produit_id}" (unique par facture+produit)
+     *  - id_produit         = produit_id
+     *  - quantite_operation = Σ quantités vendues de ce produit
+     *  - montant_operation  = Σ total_ttc des lignes de ce produit
+     *
+     * Ainsi :
+     *  - Une facture mono-produit → 1 opération  ("101:42")
+     *  - Une facture multi-produits → N opérations ("101:42", "101:43", ...)
+     *  - La référence facture reste toujours lisible dans id_operation_source.
+     */
+    protected function enregistrerVenteDansCampagne(Facture $facture, $user): void
+    {
+        $this->campagneTracker->trackerVenteFacture($facture, $user);
     }
 
     /**
@@ -991,7 +1003,7 @@ class POSService
 
     protected function creerEcrituresComptables(Facture $facture): array
     {
-        // ✅ Récupérer l'entité comme dans ReceptionFournisseurService
+        //  Récupérer l'entité comme dans ReceptionFournisseurService
         $entite = null;
         
         // 1. Via la succursale de la facture
@@ -1229,7 +1241,7 @@ class POSService
     }
 
     /**
-     * ✅ APPLIQUER LA SORTIE DE STOCK
+     *  APPLIQUER LA SORTIE DE STOCK
      */
     protected function appliquerSortieStock(Facture $facture): void
     {
@@ -1368,15 +1380,15 @@ class POSService
                 if (!empty($imeiIds)) {
                     $this->imeiService->verifierImeisApresSortie($imeiIds, $mouvementSortie);
                     
-                    // ✅ Calcul du prix de vente unitaire
+                    //  Calcul du prix de vente unitaire
                     $prixVenteUnitaire = $ligne->prix_unitaire_ttc ?? 0;
                     
-                    // ✅ Marquer les IMEI comme vendus avec le prix de vente
+                    //  Marquer les IMEI comme vendus avec le prix de vente
                     $this->imeiService->marquerImeisVendus(
                         $imeiIds,
                         $mouvementSortie,
                         $facture->id,
-                        $prixVenteUnitaire // ✅ Passage du prix de vente
+                        $prixVenteUnitaire //  Passage du prix de vente
                     );
                     
                     $ligne->imeis_utilises = $imeiIds;

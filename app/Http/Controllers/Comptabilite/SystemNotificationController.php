@@ -323,7 +323,7 @@ class SystemNotificationController extends Controller
     }
 
     // =========================================================================
-    // ✅ MARQUER COMME LU
+    //  MARQUER COMME LU
     // =========================================================================
 
     public function markAsRead(Request $request, $id)

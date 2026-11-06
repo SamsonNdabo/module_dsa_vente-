@@ -12,7 +12,7 @@ use Illuminate\Validation\Rule;
 
 class RoleController extends Controller
 {
-    // ✅ Constantes pour les niveaux
+    //  Constantes pour les niveaux
     private const NIVEAU_STRATEGIQUE = 9;
     private const NIVEAU_GESTION = 7;
 
@@ -101,7 +101,7 @@ class RoleController extends Controller
             ], 422);
         }
 
-        // ✅ Vérification des droits
+        //  Vérification des droits
         $user = auth()->user();
         if ($niveau > 8 && !$user->isSuperAdmin()) {
             return response()->json([
@@ -164,7 +164,7 @@ class RoleController extends Controller
             }
         ])->findOrFail($id);
 
-        // ✅ Statistiques - UNE SEULE REQUÊTE
+        //  Statistiques - UNE SEULE REQUÊTE
         $stats = $this->getRoleStats($role);
 
         return response()->json([
@@ -431,7 +431,7 @@ class RoleController extends Controller
      */
     public function statistiques()
     {
-        // ✅ UNE SEULE REQUÊTE pour les stats
+        //  UNE SEULE REQUÊTE pour les stats
         $stats = $this->getGlobalRoleStats();
 
         return response()->json([

@@ -64,7 +64,7 @@ class AmortissementMensuelJob implements ShouldQueue, ShouldBeUnique
                 $nbAmortis     = collect($resultat['details'])->where('montant', '>', 0)->count();
                 $nbDejaAmortis = collect($resultat['details'])->where('montant', 0)->count();
 
-                Log::info('✅ Job amortissement terminé avec succès', [
+                Log::info(' Job amortissement terminé avec succès', [
                     'entite_id'       => $this->entiteId ?? 'toutes',
                     'nb_amortis'      => $nbAmortis,
                     'nb_deja_amortis' => $nbDejaAmortis,

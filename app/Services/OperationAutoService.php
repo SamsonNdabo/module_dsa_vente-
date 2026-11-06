@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Log;
 class OperationAutoService
 {
     /**
-     * ✅ Trouver une entité par code ou par ID
+     *  Trouver une entité par code ou par ID
      * Priorité : code > entite_id
      */
     private function trouverEntite(?string $code = null, ?int $entiteId = null): ?Entite
@@ -23,14 +23,14 @@ class OperationAutoService
             
             $entite = Entite::where('code', $code)->first();
             if ($entite) {
-                Log::info("✅ Entité trouvée par code", ['code' => $code, 'id' => $entite->id]);
+                Log::info(" Entité trouvée par code", ['code' => $code, 'id' => $entite->id]);
                 return $entite;
             }
             
             // Chercher via succursale
             $succursale = Succursale::where('code', $code)->first();
             if ($succursale && $succursale->entite) {
-                Log::info("✅ Entité trouvée via succursale", ['code_succ' => $code, 'entite_id' => $succursale->entite->id]);
+                Log::info(" Entité trouvée via succursale", ['code_succ' => $code, 'entite_id' => $succursale->entite->id]);
                 return $succursale->entite;
             }
             
@@ -41,7 +41,7 @@ class OperationAutoService
         if (!empty($entiteId)) {
             $entite = Entite::find($entiteId);
             if ($entite) {
-                Log::info("✅ Entité trouvée par ID", ['id' => $entiteId, 'code' => $entite->code]);
+                Log::info(" Entité trouvée par ID", ['id' => $entiteId, 'code' => $entite->code]);
                 return $entite;
             }
             throw new \Exception("Aucune entité trouvée avec l'ID '{$entiteId}'");
@@ -153,14 +153,14 @@ class OperationAutoService
 
     /**
      * Récupérer toutes les opérations automatiques
-     * ✅ Supporte le filtrage par code entité ou entite_id
+     *  Supporte le filtrage par code entité ou entite_id
      */
     public function getAll(?string $code = null, ?int $entiteId = null)
     {
         $query = OperationsAuto::with(['parentOperation.operations_type', 'parentOperation.entites'])
             ->orderBy('created_at', 'desc');
         
-        // ✅ Filtrer par entité si code ou ID fourni
+        //  Filtrer par entité si code ou ID fourni
         if (!empty($code) || !empty($entiteId)) {
             try {
                 $entite = $this->trouverEntite($code, $entiteId);
@@ -219,7 +219,7 @@ class OperationAutoService
             $created[] = OperationsAuto::create($autoData);
         }
         
-        Log::info("✅ Opérations automatiques créées", [
+        Log::info(" Opérations automatiques créées", [
             'operation_id' => $operationId,
             'count'        => count($created)
         ]);
@@ -261,7 +261,7 @@ class OperationAutoService
             ->whereNotIn('id', $idsRecus)
             ->delete();
         
-        Log::info("✅ Opérations automatiques synchronisées", [
+        Log::info(" Opérations automatiques synchronisées", [
             'operation_id' => $operationId,
             'conservées'   => count($idsRecus)
         ]);
@@ -313,7 +313,7 @@ class OperationAutoService
             
             $autoOp->load(['parentOperation.operations_type']);
             
-            Log::info("✅ Opération automatique modifiée", ['id' => $id, 'libelle' => $data['libelle']]);
+            Log::info(" Opération automatique modifiée", ['id' => $id, 'libelle' => $data['libelle']]);
             
             return [
                 'success'         => true,
@@ -339,7 +339,7 @@ class OperationAutoService
             $autoOp = OperationsAuto::findOrFail($id);
             $autoOp->delete();
             
-            Log::info("✅ Opération automatique supprimée", ['id' => $id]);
+            Log::info(" Opération automatique supprimée", ['id' => $id]);
             
             return [
                 'success' => true,

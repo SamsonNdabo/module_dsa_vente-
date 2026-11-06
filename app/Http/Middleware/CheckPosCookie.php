@@ -51,7 +51,7 @@ class CheckPosCookie
 
                         if ($user && $user->statut === 'ACTIF' && !$user->compte_verrouille) {
                             Auth::login($user, false);
-                            Log::info('CheckPosCookie: ✅ Connecté via fichier', [
+                            Log::info('CheckPosCookie:  Connecté via fichier', [
                                 'user_id' => $user->id,
                                 'nom' => $user->nom_complet,
                             ]);
@@ -72,7 +72,7 @@ class CheckPosCookie
                         $user = Utilisateur::find($value);
                         if ($user && $user->statut === 'ACTIF' && !$user->compte_verrouille) {
                             Auth::login($user, false);
-                            Log::info('CheckPosCookie: ✅ Connecté via DB', ['user_id' => $user->id]);
+                            Log::info('CheckPosCookie:  Connecté via DB', ['user_id' => $user->id]);
                             return $next($request);
                         }
                     }

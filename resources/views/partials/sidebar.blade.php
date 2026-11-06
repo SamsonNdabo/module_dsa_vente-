@@ -110,11 +110,11 @@
                 <span>Demandes</span>
             </a>
             
-            <a href="{{ url('/stock-dsa') }}"
+            <a href="{{ url('/activations-sim') }}"
                class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium mb-1 transition
-                      {{ request()->is('stock-dsa*') ? 'bg-gradient-to-r from-indigo-600 to-indigo-800 text-white shadow-lg shadow-indigo-500/30' : 'hover:bg-white/5 hover:text-white' }}">
-                <i class="fas fa-boxes w-5 text-center"></i>
-                <span>Stock DSA</span>
+                      {{ request()->is('activations-sim*') ? 'bg-gradient-to-r from-indigo-600 to-indigo-800 text-white shadow-lg shadow-indigo-500/30' : 'hover:bg-white/5 hover:text-white' }}">
+                <i class="fas fa-sim-card w-5 text-center"></i>
+                <span>Activations SIM</span>
             </a>
 
             {{-- 🆕 Souscription client --}}

@@ -63,7 +63,7 @@ class BilanController extends Controller
                 'entite',
                 'succursale',
                 'bilan_lignes' => function ($query) {
-                    $query->orderBy('compte_numero', 'asc'); // ✅ TRI CROISSANT
+                    $query->orderBy('compte_numero', 'asc'); //  TRI CROISSANT
                 }
             ])
             ->when($request->entite_id && $request->entite_id !== 'all', fn($q) => $q->where('entite_id', $request->entite_id))
@@ -73,7 +73,7 @@ class BilanController extends Controller
             ->get();
 
             $bilans->transform(function ($bilan) {
-                // ✅ S'assurer que les lignes sont triées
+                //  S'assurer que les lignes sont triées
                 $bilan->bilan_lignes = $bilan->bilan_lignes->sortBy('compte_numero')->values();
                 $bilan->total_actif = $bilan->bilan_lignes->where('type_compte', 'actif')->sum('montant');
                 $bilan->total_passif = $bilan->bilan_lignes->where('type_compte', 'passif')->sum('montant');
@@ -104,11 +104,11 @@ class BilanController extends Controller
                 'entite',
                 'succursale',
                 'bilan_lignes' => function ($query) {
-                    $query->orderBy('compte_numero', 'asc'); // ✅ TRI CROISSANT
+                    $query->orderBy('compte_numero', 'asc'); //  TRI CROISSANT
                 }
             ])->findOrFail($id);
 
-            // ✅ Double sécurité : trier à nouveau en PHP
+            //  Double sécurité : trier à nouveau en PHP
             $bilan->bilan_lignes = $bilan->bilan_lignes->sortBy('compte_numero')->values();
 
             $bilan->total_actif = $bilan->bilan_lignes->where('type_compte', 'actif')->sum('montant');
@@ -149,7 +149,7 @@ class BilanController extends Controller
                 ->bilan()
                 ->where(fn($q) => $q->where('numero', 'LIKE', "%{$search}%")
                     ->orWhere('nom', 'LIKE', "%{$search}%"))
-                ->orderBy('numero', 'asc') // ✅ TRI CROISSANT
+                ->orderBy('numero', 'asc') //  TRI CROISSANT
                 ->limit(15)
                 ->get(['numero', 'nom', 'position_bilan'])
         );
@@ -204,12 +204,12 @@ class BilanController extends Controller
         try {
             DB::beginTransaction();
 
-            // ✅ TRIER les comptes par numéro croissant AVANT équilibrage
+            //  TRIER les comptes par numéro croissant AVANT équilibrage
             usort($validated['comptes'], fn($a, $b) => strcmp($a['compte_numero'], $b['compte_numero']));
 
             $comptesEquilibres = $this->bilanService->equilibrerBilan($validated['comptes'], $validated['type_bilan']);
 
-            // ✅ RE-TRIER après équilibrage
+            //  RE-TRIER après équilibrage
             usort($comptesEquilibres, fn($a, $b) => strcmp($a['compte_numero'], $b['compte_numero']));
 
             if ($validated['type_bilan'] !== 'provisoire') {
@@ -242,7 +242,7 @@ class BilanController extends Controller
             $this->bilanService->creerLignesBilan($bilan, $comptesEquilibres, $validated);
             DB::commit();
             $this->broadcastBilanEvent('created', $bilan);
-            return response()->json(['success' => true, 'message' => '✅ Bilan créé avec succès !', 'bilan_id' => $bilan->id]);
+            return response()->json(['success' => true, 'message' => ' Bilan créé avec succès !', 'bilan_id' => $bilan->id]);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['success' => false, 'message' => 'Erreur : ' . $e->getMessage()], 500);
@@ -290,7 +290,7 @@ class BilanController extends Controller
             $this->bilanService->synchroniserEcritures($bilan);
             DB::commit();
             $this->broadcastBilanEvent('updated', $bilan);
-            return response()->json(['success' => true, 'message' => '✅ Bilan mis à jour !']);
+            return response()->json(['success' => true, 'message' => ' Bilan mis à jour !']);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['success' => false, 'message' => 'Erreur : ' . $e->getMessage()], 500);
@@ -336,7 +336,7 @@ class BilanController extends Controller
         });
 
         $this->broadcastBilanEvent('updated', $bilan);
-        return response()->json(['success' => true, 'message' => '✅ Ligne supprimée !']);
+        return response()->json(['success' => true, 'message' => ' Ligne supprimée !']);
     }
 
     public function modifierLigne(Request $request, $id)
@@ -365,7 +365,7 @@ class BilanController extends Controller
         });
 
         $this->broadcastBilanEvent('updated', $bilan);
-        return response()->json(['success' => true, 'message' => '✅ Ligne modifiée !']);
+        return response()->json(['success' => true, 'message' => ' Ligne modifiée !']);
     }
 
     // =========================================================================
@@ -704,7 +704,7 @@ class BilanController extends Controller
             DB::beginTransaction();
 
             $bilan = Bilan::with(['bilan_lignes' => function ($query) {
-                $query->orderBy('compte_numero', 'asc'); // ✅ TRI CROISSANT
+                $query->orderBy('compte_numero', 'asc'); //  TRI CROISSANT
             }])->findOrFail($request->bilan_id);
 
             $nouveauBilan = $bilan->replicate();
@@ -727,7 +727,7 @@ class BilanController extends Controller
             DB::commit();
             return response()->json([
                 'success' => true,
-                'message' => '✅ Bilan dupliqué !',
+                'message' => ' Bilan dupliqué !',
                 'bilan_id' => $nouveauBilan->id
             ]);
         } catch (\Exception $e) {
@@ -855,7 +855,7 @@ class BilanController extends Controller
                     'entite',
                     'succursale',
                     'bilan_lignes' => function ($query) {
-                        $query->orderBy('compte_numero', 'asc'); // ✅ TRI CROISSANT
+                        $query->orderBy('compte_numero', 'asc'); //  TRI CROISSANT
                     }
                 ])->findOrFail($id);
 
@@ -875,7 +875,7 @@ class BilanController extends Controller
                 'entite',
                 'succursale',
                 'bilan_lignes' => function ($query) {
-                    $query->orderBy('compte_numero', 'asc'); // ✅ TRI CROISSANT
+                    $query->orderBy('compte_numero', 'asc'); //  TRI CROISSANT
                 }
             ])
             ->when($request->entite_id && $request->entite_id !== 'all', fn($q) => $q->where('entite_id', $request->entite_id))
@@ -995,7 +995,7 @@ class BilanController extends Controller
      */
     private function remplirFeuilleBilan($sheet, Bilan $bilan)
     {
-        // ✅ TRIER les lignes par numéro de compte croissant
+        //  TRIER les lignes par numéro de compte croissant
         $actifs = $bilan->bilan_lignes
             ->where('type_compte', 'actif')
             ->sortBy('compte_numero')
@@ -1030,7 +1030,7 @@ class BilanController extends Controller
                 $totalActif += abs($ecart);
             }
 
-            // ✅ RE-TRIER après ajout
+            //  RE-TRIER après ajout
             $actifs = $actifs->sortBy('numero')->values();
             $passifs = $passifs->sortBy('numero')->values();
         }
@@ -1114,7 +1114,7 @@ class BilanController extends Controller
         // Équilibre
         $ecartFinal = round($totalActif - $totalPassif, 2);
         $equilibre = abs($ecartFinal) < 0.01;
-        $sheet->setCellValue("A{$row}", $equilibre ? '✅ BILAN ÉQUILIBRÉ' : '⚠️ DÉSÉQUILIBRE : ' . number_format(abs($ecartFinal), 2, ',', ' ') . ' $')->mergeCells("A{$row}:H{$row}");
+        $sheet->setCellValue("A{$row}", $equilibre ? ' BILAN ÉQUILIBRÉ' : '⚠️ DÉSÉQUILIBRE : ' . number_format(abs($ecartFinal), 2, ',', ' ') . ' $')->mergeCells("A{$row}:H{$row}");
         $sheet->getStyle("A{$row}")->getFont()->setBold(true);
 
         // Largeurs
@@ -1137,7 +1137,7 @@ class BilanController extends Controller
                 'total_actif' => $bilan->bilan_lignes()->where('type_compte', 'actif')->sum('montant'),
                 'total_passif' => $bilan->bilan_lignes()->where('type_compte', 'passif')->sum('montant'),
                 'message' => match($action) {
-                    'created' => '✅ Bilan créé',
+                    'created' => ' Bilan créé',
                     'updated' => '✏️ Bilan mis à jour',
                     'deleted' => '🗑️ Bilan supprimé',
                     default => 'Bilan modifié'
@@ -1193,7 +1193,7 @@ public function parType(Request $request)
             ], 404);
         }
 
-        // ✅ Double sécurité : trier à nouveau en PHP
+        //  Double sécurité : trier à nouveau en PHP
         $bilan->bilan_lignes = $bilan->bilan_lignes->sortBy('compte_numero')->values();
 
         $bilan->total_actif = $bilan->bilan_lignes->where('type_compte', 'actif')->sum('montant');

@@ -47,7 +47,7 @@ class BudgetSection extends Model
                 'actif' => $section->actif,
             ], 'INFO');
 
-            // 🆕 LOG + BROADCAST
+            //  LOG + BROADCAST
             try {
                 $log = SysLogComptable::create([
                     'utilisateur_id' => auth()->id() ?? 1,
@@ -70,7 +70,7 @@ class BudgetSection extends Model
                 $section->logAudit('MODIFICATION_SECTION_BUDGET', $section->getOriginal(), $changed, 'HAUTE');
             }
 
-            // 🆕 LOG + BROADCAST
+            //  LOG + BROADCAST
             try {
                 $log = SysLogComptable::create([
                     'utilisateur_id' => auth()->id() ?? 1,
@@ -90,7 +90,7 @@ class BudgetSection extends Model
         static::deleted(function ($section) {
             $section->logAudit('SUPPRESSION_SECTION_BUDGET', $section->toArray(), null, 'CRITIQUE');
 
-            // 🆕 LOG + BROADCAST
+            //  LOG + BROADCAST
             try {
                 $log = SysLogComptable::create([
                     'utilisateur_id' => auth()->id() ?? 1,

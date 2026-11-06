@@ -549,7 +549,7 @@ class CommandeFournisseurController extends Controller
             
             $produit = Produit::select(['id', 'nom'])->find($ligneData['produit_id']);
             
-            // ✅ Création avec les champs existants (SANS metadata)
+            //  Création avec les champs existants (SANS metadata)
             LigneCommandeFournisseur::create([
                 'commande_id' => $commande->id,
                 'produit_id' => $ligneData['produit_id'],
@@ -572,7 +572,7 @@ class CommandeFournisseurController extends Controller
             LigneCommandeFournisseur::insert($lignesData);
         }
 
-        // ✅ Mise à jour des montants de la commande
+        //  Mise à jour des montants de la commande
         $commande->montant_total_ht = round($totalHT, 2);
         $commande->montant_total_tva = round($totalTVA, 2);
         $commande->montant_total_ttc = round($totalTTC, 2);
@@ -672,7 +672,7 @@ class CommandeFournisseurController extends Controller
             'fournisseur' => function($q) {
                 $q->select('id', 'nom', 'code_fournisseur', 'email', 'telephone', 'adresse', 'ville');
             },
-            // ✅ CHARGEMENT COMPLET DU DEVIS AVEC SES RELATIONS
+            //  CHARGEMENT COMPLET DU DEVIS AVEC SES RELATIONS
             'devis' => function($q) {
                 $q->with([
                     'fournisseur:id,nom,code_fournisseur,email,telephone',
@@ -719,7 +719,7 @@ class CommandeFournisseurController extends Controller
             }
         ])->findOrFail($id);
 
-        // ✅ Vérification accès
+        //  Vérification accès
         if (!$this->canAccessCommande($user, $commande)) {
             return response()->json([
                 'success' => false,
@@ -893,7 +893,7 @@ class CommandeFournisseurController extends Controller
         try {
             $commande->annuler(auth()->id(), $request->motif);
 
-            // ✅ Si un devis est associé, restaurer son statut
+            //  Si un devis est associé, restaurer son statut
             if ($commande->devis_id) {
                 $devis = DevisFournisseur::find($commande->devis_id);
                 if ($devis && $devis->statut === 'COMMANDE_CREEE') {
@@ -901,7 +901,7 @@ class CommandeFournisseurController extends Controller
                 }
             }
 
-            // ✅ Envoi email en arrière-plan
+            //  Envoi email en arrière-plan
             try {
                 $commande->envoyerEmailAnnulationFournisseur();
             } catch (\Exception $e) {
@@ -958,7 +958,7 @@ class CommandeFournisseurController extends Controller
             ], 422);
         }
 
-        // ✅ Si un devis est associé, restaurer son statut
+        //  Si un devis est associé, restaurer son statut
         if ($commande->devis_id) {
             $devis = DevisFournisseur::find($commande->devis_id);
             if ($devis && $devis->statut === 'COMMANDE_CREEE') {

@@ -8,7 +8,7 @@ use App\Http\Requests\Dsa\StoreClientDsaRequest;
 use App\Http\Requests\Dsa\UpdateClientDsaRequest;
 use App\Http\Resources\ClientDsaResource;
 use App\Models\Client;
-use App\Services\ClientDsaService;
+use App\Services\Client_Kyc\ClientDsaService;
 use Illuminate\Http\Request;
 
 class ClientDsaController extends Controller

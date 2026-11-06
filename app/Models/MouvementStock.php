@@ -143,7 +143,7 @@ class MouvementStock extends Model
         return $this->belongsTo(StockSuccursale::class, 'stock_destination_id');
     }
 
-    // ✅ Lien vers la demande parente (Approvisionnement ou Transfert)
+    //  Lien vers la demande parente (Approvisionnement ou Transfert)
     public function demandeParente()
     {
         return $this->belongsTo(Approvisionnement::class, 'demande_parent_id');
@@ -273,7 +273,7 @@ class MouvementStock extends Model
     
         $quantiteAvant = $stock->quantite_disponible;
     
-        // ✅ Création du mouvement (sans les champs de lot)
+        //  Création du mouvement (sans les champs de lot)
         $mouvement = new self();
         $mouvement->reference_mouvement = self::genererReference();
         $mouvement->succursale_id = $options['succursale_id'] ?? $stock->succursale_id;
@@ -305,7 +305,7 @@ class MouvementStock extends Model
         $mouvement->raison = $options['raison'] ?? 'Création de lot FIFO';
         $mouvement->reference_document = $options['reference_document'] ?? null;
     
-        // ✅ Conserver le numéro de lot dans metadata
+        //  Conserver le numéro de lot dans metadata
         $metadata = $options['metadata'] ?? [];
         if (isset($options['numero_lot_fournisseur'])) {
             $metadata['numero_lot_fournisseur'] = $options['numero_lot_fournisseur'];
@@ -316,11 +316,11 @@ class MouvementStock extends Model
         $mouvement->mouvement_origine_id = $mouvement->mouvement_id;
         $mouvement->save();
     
-        // ✅ Mettre à jour le stock (quantité disponible)
+        //  Mettre à jour le stock (quantité disponible)
         $stock->quantite_disponible += $quantite;
         $stock->save();
     
-        // ✅ Créer le lot via le service
+        //  Créer le lot via le service
         $lotService = app(\App\Services\Stock\LotStockService::class);
         $lotService->creerLotDepuisMouvement($mouvement);
     
@@ -345,7 +345,7 @@ class MouvementStock extends Model
     
         $quantiteAvant = $stock->quantite_disponible;
     
-        // ✅ Création du mouvement de sortie (sans logique FIFO)
+        //  Création du mouvement de sortie (sans logique FIFO)
         $mouvementSortie = new self();
         $mouvementSortie->reference_mouvement = self::genererReference();
         $mouvementSortie->succursale_id = $options['succursale_id'] ?? auth()->user()->succursale_id ?? 1;
@@ -376,7 +376,7 @@ class MouvementStock extends Model
         $mouvementSortie->save();
         $mouvementSortie->mouvement_origine_id = null; // Plus de lien vers un lot unique
     
-        // ✅ Consommer les lots via le service
+        //  Consommer les lots via le service
         $lotService = app(\App\Services\Stock\LotStockService::class);
         $result = $lotService->consommerLots($stock, $quantite, $mouvementSortie, [
             'autoriser_expires' => $options['autoriser_expires'] ?? false,

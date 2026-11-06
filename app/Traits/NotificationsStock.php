@@ -70,7 +70,7 @@ trait NotificationsStock
 
         $this->notifierUtilisateurs([
             'type' => 'RETOUR_NORMAL',
-            'titre' => "✅ Retour à la normale - {$this->produit->nom}",
+            'titre' => " Retour à la normale - {$this->produit->nom}",
             'message' => "Le stock de {$this->produit->nom} est revenu à un niveau normal.",
             'donnees' => [
                 'stock_id' => $this->id,

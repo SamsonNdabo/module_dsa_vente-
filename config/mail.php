@@ -45,9 +45,9 @@ return [
     'port' => env('MAIL_PORT', 2525),
     'username' => env('MAIL_USERNAME'),
     'password' => env('MAIL_PASSWORD'),
-    'timeout' => env('MAIL_TIMEOUT', 5), // ✅ RÉDUIRE LE TIMEOUT (5 secondes au lieu de null)
+    'timeout' => env('MAIL_TIMEOUT', 5), //  RÉDUIRE LE TIMEOUT (5 secondes au lieu de null)
     'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url(env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
-    // ✅ AJOUTER CES OPTIONS POUR ACCÉLÉRER
+    //  AJOUTER CES OPTIONS POUR ACCÉLÉRER
     'auth_mode' => null,
     'verify_peer' => false, // Désactive la vérification SSL (accélère)
     'verify_peer_name' => false,

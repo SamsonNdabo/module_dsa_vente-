@@ -418,14 +418,14 @@ class SuiviBudgetaireController extends Controller
 
             $this->notificationService->notifierAvecEmail(
                 auth()->id() ?? 1,
-                '✅ Prévision validée',
+                ' Prévision validée',
                 ($p->rubrique->libelle ?? 'N/A')
                     . ' - Mois ' . ($p->mois ?? 'N/A')
                     . ' : ' . number_format($p->montant ?? 0, 2, ',', ' ') . ' $',
                 [
                     'type' => 'budget_alert',
                     'severity' => 'success',
-                    'icon' => '✅',
+                    'icon' => '',
                     'action_url' => '/suivi-budgetaire#planification',
                 ]
             );
@@ -454,7 +454,7 @@ class SuiviBudgetaireController extends Controller
                 $periode = PeriodesComptable::find($request->periode_id);
 
                 $this->notificationService->notifierEmailSeulement(
-                    '✅ Toutes prévisions validées',
+                    ' Toutes prévisions validées',
                     ($result['nb_validees'] ?? 0)
                         . ' prévision(s) validée(s) pour ' . ($periode->code ?? 'N/A') . '.',
                     auth()->id()
@@ -496,7 +496,7 @@ class SuiviBudgetaireController extends Controller
     }
 
     // =========================================================================
-    // ✅ CORRIGÉ : STATISTIQUES PAR ENTITÉ (GRAPHIQUE DASHBOARD)
+    //  CORRIGÉ : STATISTIQUES PAR ENTITÉ (GRAPHIQUE DASHBOARD)
     //
     //  LOGIQUE GRAND LIVRE :
     //  - INCLUT le bilan initial + mouvements (comme le Grand Livre)
@@ -568,7 +568,7 @@ class SuiviBudgetaireController extends Controller
                         ->where('periode_id', $periodeId)
                         ->whereBetween('date_ecriture', [$dateDebut, $dateFin])
                         ->where(function ($q) {
-                            // ✅ EXCLUT UNIQUEMENT les clôtures
+                            //  EXCLUT UNIQUEMENT les clôtures
                             $q->where('reference', 'NOT LIKE', 'CLÔTURE%')
                               ->where('reference', 'NOT LIKE', 'CLOTURE%')
                               ->orWhereNull('reference');

@@ -100,8 +100,8 @@ class KycController extends Controller
      * STORE - UPLOADER UN DOCUMENT KYC (PDF, JPG, PNG)
      * POST /api/kyc
      * 
-     * ✅ Supporte l'upload de fichiers PDF, JPG, PNG
-     * ✅ Stocke le fichier dans storage/app/public/kyc
+     *  Supporte l'upload de fichiers PDF, JPG, PNG
+     *  Stocke le fichier dans storage/app/public/kyc
      */
     public function store(Request $request)
     {
@@ -110,7 +110,7 @@ class KycController extends Controller
                 'client_id' => 'required|exists:clients,id',
                 'type_document' => 'required|string|in:CIN,PASSEPORT,ATTESTATION',
                 'numero_document' => 'nullable|string|max:100',
-                // ✅ Fichier obligatoire
+                //  Fichier obligatoire
                 'fichier' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120', // 5MB max
                 'metadata' => 'nullable|array',
                 'notes' => 'nullable|string|max:500',
@@ -146,7 +146,7 @@ class KycController extends Controller
 
             DB::beginTransaction();
 
-            // ✅ Upload du fichier
+            //  Upload du fichier
             $file = $request->file('fichier');
             $extension = $file->getClientOriginalExtension();
             $fileName = 'kyc_' . Str::uuid() . '.' . $extension;
@@ -159,7 +159,7 @@ class KycController extends Controller
                 ], 500);
             }
 
-            // ✅ Création du document
+            //  Création du document
             $document = KycDocument::create([
                 'client_id' => $client->id,
                 'type_document' => $request->type_document,
@@ -178,11 +178,11 @@ class KycController extends Controller
                 ])
             ]);
 
-            // ✅ Mise à jour du statut du client
+            //  Mise à jour du statut du client
             $client->statut = 'EN_ATTENTE';
             $client->save();
 
-            // ✅ Notification
+            //  Notification
             $this->createNotification(
                 $client,
                 'KYC_UPLOAD',
@@ -248,7 +248,7 @@ class KycController extends Controller
                 ->select(['id', 'type_document', 'statut', 'created_at'])
                 ->get();
 
-            // ✅ Générer l'URL du fichier
+            //  Générer l'URL du fichier
             $fileUrl = null;
             if ($document->file_path && Storage::disk('public')->exists($document->file_path)) {
                 $fileUrl = Storage::disk('public')->url($document->file_path);
@@ -491,7 +491,7 @@ public function download($id)
                 $this->createNotification(
                     $client,
                     'KYC_VALIDE',
-                    '✅ KYC validé',
+                    ' KYC validé',
                     'Félicitations ! Votre dossier KYC a été validé. Votre compte est maintenant actif.',
                     ['date_validation' => now()->toDateTimeString()]
                 );
@@ -664,7 +664,7 @@ public function download($id)
                     $this->createNotification(
                         $client,
                         'KYC_VALIDE',
-                        '✅ KYC validé',
+                        ' KYC validé',
                         'Félicitations ! Votre dossier KYC a été validé. Votre compte est maintenant actif.',
                         ['date_validation' => now()->toDateTimeString()]
                     );

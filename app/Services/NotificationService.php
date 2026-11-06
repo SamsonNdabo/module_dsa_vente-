@@ -99,7 +99,7 @@ class NotificationService
 
     public function notifierValidationPrevision(int $utilisateurId, string $rubrique, string $mois, float $montant): void
     {
-        $this->creerNotification($utilisateurId, 'Prévision validée', "{$rubrique} - {$mois} : " . number_format($montant, 2, ',', ' ') . " $", ['type' => 'budget_alert', 'severity' => 'success', 'icon' => '✅']);
+        $this->creerNotification($utilisateurId, 'Prévision validée', "{$rubrique} - {$mois} : " . number_format($montant, 2, ',', ' ') . " $", ['type' => 'budget_alert', 'severity' => 'success', 'icon' => '']);
     }
 
     public function notifierCreationEcriture(int $utilisateurId, string $libelle, string $reference, float $montant): void

@@ -129,7 +129,7 @@ class FactureController extends Controller
             }
         ])->findOrFail($id);
 
-        // ✅ Pour chaque ligne, charger les IMEI associés
+        //  Pour chaque ligne, charger les IMEI associés
         foreach ($facture->lignes as $ligne) {
             if ($ligne->imeis_utilises) {
                 $ligne->imeis_details = \App\Models\ProduitImei::whereIn('id', $ligne->imeis_utilises)
@@ -407,7 +407,7 @@ class FactureController extends Controller
             'caisse'
         ])->findOrFail($id);
 
-        // ✅ Charger les IMEI pour chaque ligne
+        //  Charger les IMEI pour chaque ligne
         foreach ($facture->lignes as $ligne) {
             if ($ligne->imeis_utilises) {
                 $ligne->imeis_details = \App\Models\ProduitImei::whereIn('id', $ligne->imeis_utilises)

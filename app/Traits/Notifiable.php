@@ -233,7 +233,7 @@ trait Notifiable
     }
 
     /**
-     * ✅ NOUVELLE MÉTHODE : Notifier la prise en charge
+     *  NOUVELLE MÉTHODE : Notifier la prise en charge
      */
     public function notifierPriseEnCharge($demande, $user, $sourceStock)
     {
@@ -253,7 +253,7 @@ trait Notifiable
                     'code' => 'CHEF_AGENCE'
                 ],
                 'type' => $typeNotification,
-                'titre' => "✅ Demande prise en charge",
+                'titre' => " Demande prise en charge",
                 'message' => "La demande #{$demande->reference} a été prise en charge par {$user->nom_complet} du dépôt {$sourceStock->succursale->nom}",
                 'donnees' => [
                     'demande_id' => $demande->id,
@@ -275,7 +275,7 @@ trait Notifiable
                         'id' => $demande->demandeur_id
                     ],
                     'type' => $typeNotification,
-                    'titre' => "✅ Votre demande a été prise en charge",
+                    'titre' => " Votre demande a été prise en charge",
                     'message' => "Votre demande #{$demande->reference} a été prise en charge par {$user->nom_complet} du dépôt {$sourceStock->succursale->nom}",
                     'donnees' => [
                         'demande_id' => $demande->id,

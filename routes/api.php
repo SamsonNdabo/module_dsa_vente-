@@ -9,26 +9,24 @@ use App\Http\Controllers\PlainteSuggestion\SuggestionController;
 use App\Http\Controllers\PlainteSuggestion\SuggestionHistoriqueController;
 use App\Http\Controllers\PlainteSuggestion\SuggestionPieceJointeController;
 use App\Http\Controllers\Utilisateur\UtilisateurController;
-use App\Http\Controllers\Utilisateur\RoleController;
-use App\Http\Controllers\Utilisateur\PermissionController;
-use App\Http\Controllers\Succursale\SuccursaleController;
-use App\Http\Controllers\Dsa\ZoneController;
+
+use App\Http\Controllers\Partenaire\PartenaireController;
+use App\Http\Controllers\Campagne\CampagneController;
+use App\Http\Controllers\Zone\ZoneController;
+use App\Http\Controllers\Produit\ProduitController;
+use App\Http\Controllers\Produit\ProduitEpargneController;
+// use App\Http\Controllers\Dsa\ZoneController;
 use App\Http\Controllers\Dsa\AgentDsaController;
-use App\Http\Controllers\Dsa\ProduitDsaController;
-use App\Http\Controllers\Dsa\PartenaireController;
 use App\Http\Controllers\Devise\DeviseController;
 use App\Http\Controllers\Dsa\RegleKycPartenaireController;
 use App\Http\Controllers\Dsa\ClientDsaController;
 use App\Http\Controllers\Dsa\AgentAffectationController;
-use App\Http\Controllers\Dsa\CampagneController;
 use App\Http\Controllers\Dsa\ConsentementController;
 use App\Http\Controllers\Dsa\KycController;
-use App\Http\Controllers\Dsa\ObjectifMesurableController;
 use App\Http\Controllers\Dsa\DemandeController;
-use App\Http\Controllers\Dsa\CampagneObjectifController;
-use App\Http\Controllers\Dsa\CampagneObjectifAgentController;
 use App\Http\Controllers\Dsa\SouscriptionController;
 use App\Http\Controllers\Dsa\ProduitEpargneController;
+use App\Http\Controllers\Dsa\ActivationSimController;
 
 // ============================================================
 // ROUTE DE TEST
@@ -38,10 +36,10 @@ Route::get('/', function () {
 });
 
 // ============================================================
-// ROUTES PUBLIQUES — AUTH
+// ROUTES PUBLIQUES - AUTH
 // ============================================================
 Route::prefix('auth')->group(function () {
-    Route::post('login',              [AuthController::class, 'login']);
+    Route::post('login',              [AuthController::class, 'login'])->name('login');
     Route::post('forgot-password',    [AuthController::class, 'forgotPassword']);
     Route::post('reset-password',     [AuthController::class, 'resetPassword']);
     Route::post('verify-reset-token', [AuthController::class, 'verifyResetToken']);
@@ -50,34 +48,20 @@ Route::prefix('auth')->group(function () {
 });
 
 // ============================================================
-// RÔLES
+// ROUTES PROTEGEES - AUTH UNIQUEMENT
 // ============================================================
-Route::middleware('auth:sanctum')->prefix('roles')->group(function () {
-    Route::get('/',                  [RoleController::class, 'index']);
-    Route::post('/',                 [RoleController::class, 'store']);
-    Route::get('/{id}',              [RoleController::class, 'show']);
-    Route::put('/{id}',              [RoleController::class, 'update']);
-    Route::delete('/{id}',           [RoleController::class, 'destroy']);
-
-    Route::post('/{id}/permissions', [RoleController::class, 'assignPermissions']);
-    Route::post('/{id}/duplicate',   [RoleController::class, 'duplicate']);
-    Route::get('/{id}/permissions-list', [RoleController::class, 'permissions']);
-    Route::get('/niveaux/liste',     [RoleController::class, 'niveauxListe']);
+Route::middleware('auth:sanctum')->prefix('auth')->group(function () {
+    Route::post('logout',  [AuthController::class, 'logout']);
+    Route::get('me',       [AuthController::class, 'me']);
+    Route::post('refresh', [AuthController::class, 'refresh']);
 });
 
-// ============================================================
-// PERMISSIONS
-// ============================================================
-Route::middleware('auth:sanctum')->prefix('permissions')->group(function () {
-    Route::get('/',                  [PermissionController::class, 'index']);
-    Route::get('/statistiques',      [PermissionController::class, 'statistiques']);
-    Route::get('/modules',           [PermissionController::class, 'modules']);
-    Route::get('/categories',        [PermissionController::class, 'categories']);
-    Route::post('/sync',             [PermissionController::class, 'sync']);
-    Route::get('/{id}',              [PermissionController::class, 'show']);
-    Route::put('/{id}',              [PermissionController::class, 'update']);
-    Route::delete('/{id}',           [PermissionController::class, 'destroy']);
+Route::middleware('auth:sanctum')->prefix('utilisateurs')->group(function () {
+    Route::get('/',       [UtilisateurController::class, 'index']);
+    Route::get('/agents', [UtilisateurController::class, 'agents']);
+    Route::get('/{id}',   [UtilisateurController::class, 'show']);
 });
+
 
 // ============================================================
 // SUCCURSALES
@@ -101,62 +85,53 @@ Route::middleware('auth:sanctum')->prefix('succursales')->group(function () {
 // ============================================================
 // ZONES — legacy (/api/zones) + alias DSA (/api/dsa/zones)
 // ============================================================
-Route::middleware('auth:sanctum')->group(function () {
-    Route::prefix('zones')->group(function () {
-        Route::get('/',        [ZoneController::class, 'index']);
-        Route::post('/',       [ZoneController::class, 'store']);
-        Route::get('/options', [ZoneController::class, 'options']);
-        Route::get('/{id}',    [ZoneController::class, 'show'])->whereNumber('id');
-        Route::put('/{id}',    [ZoneController::class, 'update'])->whereNumber('id');
-        Route::delete('/{id}', [ZoneController::class, 'destroy'])->whereNumber('id');
-    });
+// Route::middleware('auth:sanctum')->group(function () {
+//     Route::prefix('zones')->group(function () {
+//         Route::get('/',        [ZoneController::class, 'index']);
+//         Route::post('/',       [ZoneController::class, 'store']);
+//         Route::get('/options', [ZoneController::class, 'options']);
+//         Route::get('/{id}',    [ZoneController::class, 'show'])->whereNumber('id');
+//         Route::put('/{id}',    [ZoneController::class, 'update'])->whereNumber('id');
+//         Route::delete('/{id}', [ZoneController::class, 'destroy'])->whereNumber('id');
+//     });
 
-    Route::prefix('dsa/zones')->group(function () {
-        Route::get('/',        [ZoneController::class, 'index']);
-        Route::get('/options', [ZoneController::class, 'options']);
-        Route::get('/{id}',    [ZoneController::class, 'show'])->whereNumber('id');
-    });
-});
+//     Route::prefix('dsa/zones')->group(function () {
+//         Route::get('/',        [ZoneController::class, 'index']);
+//         Route::get('/options', [ZoneController::class, 'options']);
+//         Route::get('/{id}',    [ZoneController::class, 'show'])->whereNumber('id');
+//     });
+// });
 
 // ============================================================
 // AGENTS DSA
 // ============================================================
+// Route::middleware('auth:sanctum')->prefix('dsa/agents')->group(function () {
+//     Route::get('/',           [AgentDsaController::class, 'index']);
+//     Route::post('/',          [AgentDsaController::class, 'store']);
+//     Route::get('/options',    [AgentDsaController::class, 'options']);  // AVANT /{id}
+//     Route::get('/{id}',       [AgentDsaController::class, 'show'])->whereNumber('id');
+//     Route::put('/{id}',       [AgentDsaController::class, 'update'])->whereNumber('id');
+//     Route::delete('/{id}',    [AgentDsaController::class, 'destroy'])->whereNumber('id');
+//     Route::post('/{id}/statut',     [AgentDsaController::class, 'changerStatut'])->whereNumber('id');
+//     Route::put('/{id}/affectation', [AgentDsaController::class, 'affecter'])->whereNumber('id');
+// });
+// ============================================================
+// AFFECTATIONS AGENTS
+// ============================================================
 Route::middleware('auth:sanctum')->prefix('dsa/agents')->group(function () {
-    Route::get('/',           [AgentDsaController::class, 'index']);
-    Route::post('/',          [AgentDsaController::class, 'store']);
-    Route::get('/options',    [AgentDsaController::class, 'options']);  // AVANT /{id}
-    Route::get('/{id}',       [AgentDsaController::class, 'show'])->whereNumber('id');
-    Route::put('/{id}',       [AgentDsaController::class, 'update'])->whereNumber('id');
-    Route::delete('/{id}',    [AgentDsaController::class, 'destroy'])->whereNumber('id');
-    Route::post('/{id}/statut',     [AgentDsaController::class, 'changerStatut'])->whereNumber('id');
-    Route::put('/{id}/affectation', [AgentDsaController::class, 'affecter'])->whereNumber('id');
+    Route::get('/{agentId}/affectations',  [AgentAffectationController::class, 'index'])->whereNumber('agentId');
+    Route::post('/{agentId}/affectations', [AgentAffectationController::class, 'store'])->whereNumber('agentId');
 });
 
 // ============================================================
-// PRODUITS DSA
+// CONSENTEMENTS
 // ============================================================
-Route::middleware('auth:sanctum')->prefix('dsa/produits')->group(function () {
-    Route::get('/',                       [ProduitDsaController::class, 'index']);
-    Route::post('/',                      [ProduitDsaController::class, 'store']);
-    Route::get('/options',                [ProduitDsaController::class, 'options']);
-    Route::get('/produits-pos-disponibles',[ProduitDsaController::class, 'produitsPosDisponibles']);
-    Route::get('/{id}',                   [ProduitDsaController::class, 'show']);
-    Route::put('/{id}',                   [ProduitDsaController::class, 'update']);
-    Route::delete('/{id}',                [ProduitDsaController::class, 'destroy']);
+Route::middleware('auth:sanctum')->prefix('dsa/clients/{clientId}/consentements')->group(function () {
+    Route::get('/',  [ConsentementController::class, 'index'])->whereNumber('clientId');
+    Route::post('/', [ConsentementController::class, 'store'])->whereNumber('clientId');
 });
 
-// ============================================================
-// PARTENAIRES
-// ============================================================
-Route::middleware('auth:sanctum')->prefix('dsa/partenaires')->group(function () {
-    Route::get('/',                  [PartenaireController::class, 'index']);
-    Route::post('/',                 [PartenaireController::class, 'store']);
-    Route::get('/options',           [PartenaireController::class, 'options']);
-    Route::get('/{id}',              [PartenaireController::class, 'show']);
-    Route::put('/{id}',              [PartenaireController::class, 'update']);
-    Route::delete('/{id}',           [PartenaireController::class, 'destroy']);
-    Route::post('/{id}/toggle-actif',[PartenaireController::class, 'toggleActif']);
-});
+
 
 // ============================================================
 // DEVISES
@@ -194,63 +169,6 @@ Route::middleware('auth:sanctum')->prefix('dsa/clients')->group(function () {
     Route::delete('/{id}',                        [ClientDsaController::class, 'destroy'])->whereNumber('id');
     Route::post('/{id}/statut',                   [ClientDsaController::class, 'changerStatut'])->whereNumber('id');
 });
-
-// ============================================================
-// CAMPAGNES — CRUD + Statut + Objectifs types + Attribution agents
-// ============================================================
-Route::middleware('auth:sanctum')->prefix('dsa/campagnes')->group(function () {
-    // CRUD
-    Route::get('/',              [CampagneController::class, 'index']);
-    Route::get('/options',       [CampagneController::class, 'options']);
-    Route::post('/',             [CampagneController::class, 'store']);
-    Route::get('/{id}',          [CampagneController::class, 'show'])->whereNumber('id');
-    Route::put('/{id}',          [CampagneController::class, 'update'])->whereNumber('id');
-    Route::delete('/{id}',       [CampagneController::class, 'destroy'])->whereNumber('id');
-    Route::post('/{id}/statut',  [CampagneController::class, 'changerStatut'])->whereNumber('id');
-        // Objectifs mesurables de la campagne (par agent)
-    Route::get('/{id}/objectifs-mesurables', [ObjectifMesurableController::class, 'parAgentCampagne'])->whereNumber('id');
-
-    // Objectifs types (définir / lire)
-    Route::get ('/{id}/objectifs-types', [CampagneObjectifController::class, 'index'])->whereNumber('id');
-    Route::post('/{id}/objectifs-types', [CampagneObjectifController::class, 'definir'])->whereNumber('id');
-
-    // Attribution des objectifs aux agents
-    Route::get ('/{id}/objectifs-agents',    [CampagneObjectifAgentController::class, 'matrice'])->whereNumber('id');
-    Route::post('/{id}/attribuer-objectifs', [CampagneObjectifAgentController::class, 'attribuer'])->whereNumber('id');
-});
-
-// ============================================================
-// AFFECTATIONS AGENTS
-// ============================================================
-Route::middleware('auth:sanctum')->prefix('dsa/agents')->group(function () {
-    Route::get('/{agentId}/affectations',  [AgentAffectationController::class, 'index'])->whereNumber('agentId');
-    Route::post('/{agentId}/affectations', [AgentAffectationController::class, 'store'])->whereNumber('agentId');
-});
-
-// ============================================================
-// CONSENTEMENTS
-// ============================================================
-Route::middleware('auth:sanctum')->prefix('dsa/clients/{clientId}/consentements')->group(function () {
-    Route::get('/',  [ConsentementController::class, 'index'])->whereNumber('clientId');
-    Route::post('/', [ConsentementController::class, 'store'])->whereNumber('clientId');
-});
-
-// ============================================================
-// OBJECTIFS MESURABLES
-// ============================================================
-Route::middleware('auth:sanctum')->prefix('dsa/objectifs')->group(function () {
-    Route::get('/',               [ObjectifMesurableController::class, 'index']);
-    Route::post('/',              [ObjectifMesurableController::class, 'store']);
-    Route::get('/{id}',           [ObjectifMesurableController::class, 'show'])->whereNumber('id');
-    Route::put('/{id}',           [ObjectifMesurableController::class, 'update'])->whereNumber('id');
-    Route::delete('/{id}',        [ObjectifMesurableController::class, 'destroy'])->whereNumber('id');
-    Route::post('/{id}/incrementer', [ObjectifMesurableController::class, 'incrementer'])->whereNumber('id');
-    Route::post('/{id}/set-realisee', [ObjectifMesurableController::class, 'setValeurRealisee'])->whereNumber('id');
-    Route::get('/{id}/clients', [ObjectifMesurableController::class, 'clientsParObjectif'])->whereNumber('id');
-    // Retirer une attribution (annule l'objectif mesurable)
-    Route::delete('/{id}/retirer-attribution', [CampagneObjectifAgentController::class, 'retirer'])->whereNumber('id');
-});
-
 // ============================================================
 // KYC — Clients DSA
 // ============================================================
@@ -274,23 +192,41 @@ Route::middleware('auth:sanctum')->prefix('dsa/demandes')->group(function () {
     Route::post('/{id}/transition', [DemandeController::class, 'transitionner'])->whereNumber('id');
 });
 
-// ============================================================
-// AUTH PROTÉGÉ
-// ============================================================
-Route::middleware('auth:sanctum')->prefix('auth')->group(function () {
-    Route::post('logout',  [AuthController::class, 'logout']);
-    Route::get('me',       [AuthController::class, 'me']);
-    Route::post('refresh', [AuthController::class, 'refresh']);
+// ═══ Activations SIM ═══
+Route::middleware('auth:sanctum')->prefix('dsa/activations-sim')->group(function () {
+    Route::get('/', [ActivationSimController::class, 'index']);
+    Route::post('/', [ActivationSimController::class, 'store']);
+    Route::get('/{id}', [ActivationSimController::class, 'show']);
+    Route::get('/{id}/preuve', [ActivationSimController::class, 'telechargerPreuve']);
+    Route::delete('/{id}', [ActivationSimController::class, 'destroy']);
 });
 
-// ============================================================
-// UTILISATEURS
-// ============================================================
-Route::middleware('auth:sanctum')->prefix('utilisateurs')->group(function () {
-    Route::get('/',           [UtilisateurController::class, 'index']);
-    Route::get('/agents',     [UtilisateurController::class, 'agents']);
-    Route::get('/{id}',       [UtilisateurController::class, 'show']);
-});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // ============================================================
 // PLAINTES
@@ -298,15 +234,16 @@ Route::middleware('auth:sanctum')->prefix('utilisateurs')->group(function () {
 Route::prefix('plaintes')->name('plaintes.')->group(function () {
     Route::get('kpi',        [PlainteController::class, 'kpi'])->name('kpi');
     Route::get('kpi/detail', [PlainteController::class, 'kpiDetail'])->name('kpi.detail');
-
+    Route::get('export/pdf',   [PlainteController::class, 'exportPdf'])->name('export.pdf');
+    Route::get('export/excel', [PlainteController::class, 'exportExcel'])->name('export.excel');
+    Route::get('historique', [PlainteController::class, 'historique'])->name('historique');
     Route::get('/',        [PlainteController::class, 'index'])->name('index');
     Route::post('/',       [PlainteController::class, 'store'])->name('store');
     Route::get('/{id}',    [PlainteController::class, 'show'])->name('show');
     Route::put('/{id}',    [PlainteController::class, 'update'])->name('update');
     Route::delete('/{id}', [PlainteController::class, 'destroy'])->name('destroy');
-
     Route::post('/{id}/affecter', [PlainteController::class, 'affecter'])->name('affecter');
-    Route::post('/{id}/statut',   [PlainteController::class, 'changerStatut'])->name('statut');
+    Route::post('/{id}/statut', [PlainteController::class, 'changerStatut'])->name('statut');
 
     Route::prefix('{plainteId}/pieces-jointes')->name('pieces.')->group(function () {
         Route::get('/',            [PlaintePieceJointeController::class, 'index'])->name('index');
@@ -317,11 +254,11 @@ Route::prefix('plaintes')->name('plaintes.')->group(function () {
     });
 
     Route::prefix('{plainteId}/historiques')->name('historiques.')->group(function () {
-        Route::get('/',            [PlainteHistoriqueController::class, 'index'])->name('index');
-        Route::get('/stats',       [PlainteHistoriqueController::class, 'stats'])->name('stats');
-        Route::get('/dernier',     [PlainteHistoriqueController::class, 'dernier'])->name('dernier');
-        Route::get('/action/{action}',             [PlainteHistoriqueController::class, 'parAction'])->name('parAction');
-        Route::get('/utilisateur/{utilisateurId}', [PlainteHistoriqueController::class, 'parUtilisateur'])->name('parUtilisateur');
+        Route::get('/',                             [PlainteHistoriqueController::class, 'index'])->name('index');
+        Route::get('/stats',                        [PlainteHistoriqueController::class, 'stats'])->name('stats');
+        Route::get('/dernier',                      [PlainteHistoriqueController::class, 'dernier'])->name('dernier');
+        Route::get('/action/{action}',              [PlainteHistoriqueController::class, 'parAction'])->name('parAction');
+        Route::get('/utilisateur/{utilisateurId}',  [PlainteHistoriqueController::class, 'parUtilisateur'])->name('parUtilisateur');
     });
 });
 
@@ -331,15 +268,16 @@ Route::prefix('plaintes')->name('plaintes.')->group(function () {
 Route::prefix('suggestions')->name('suggestions.')->group(function () {
     Route::get('kpi',        [SuggestionController::class, 'kpi'])->name('kpi');
     Route::get('kpi/detail', [SuggestionController::class, 'kpiDetail'])->name('kpi.detail');
-
+    Route::get('export/pdf',   [SuggestionController::class, 'exportPdf'])->name('export.pdf');
+    Route::get('export/excel', [SuggestionController::class, 'exportExcel'])->name('export.excel');
+    Route::get('historique', [SuggestionController::class, 'historique'])->name('historique');
     Route::get('/',        [SuggestionController::class, 'index'])->name('index');
     Route::post('/',       [SuggestionController::class, 'store'])->name('store');
     Route::get('/{id}',    [SuggestionController::class, 'show'])->name('show');
     Route::put('/{id}',    [SuggestionController::class, 'update'])->name('update');
     Route::delete('/{id}', [SuggestionController::class, 'destroy'])->name('destroy');
-
     Route::post('/{id}/affecter', [SuggestionController::class, 'affecter'])->name('affecter');
-    Route::post('/{id}/statut',   [SuggestionController::class, 'changerStatut'])->name('statut');
+    Route::post('/{id}/statut', [SuggestionController::class, 'changerStatut'])->name('statut');
 
     Route::prefix('{suggestionId}/pieces-jointes')->name('pieces.')->group(function () {
         Route::get('/',            [SuggestionPieceJointeController::class, 'index'])->name('index');
@@ -350,20 +288,160 @@ Route::prefix('suggestions')->name('suggestions.')->group(function () {
     });
 
     Route::prefix('{suggestionId}/historiques')->name('historiques.')->group(function () {
-        Route::get('/',            [SuggestionHistoriqueController::class, 'index'])->name('index');
-        Route::get('/stats',       [SuggestionHistoriqueController::class, 'stats'])->name('stats');
-        Route::get('/dernier',     [SuggestionHistoriqueController::class, 'dernier'])->name('dernier');
-        Route::get('/action/{action}',             [SuggestionHistoriqueController::class, 'parAction'])->name('parAction');
-        Route::get('/utilisateur/{utilisateurId}', [SuggestionHistoriqueController::class, 'parUtilisateur'])->name('parUtilisateur');
+        Route::get('/',                             [SuggestionHistoriqueController::class, 'index'])->name('index');
+        Route::get('/stats',                        [SuggestionHistoriqueController::class, 'stats'])->name('stats');
+        Route::get('/dernier',                      [SuggestionHistoriqueController::class, 'dernier'])->name('dernier');
+        Route::get('/action/{action}',              [SuggestionHistoriqueController::class, 'parAction'])->name('parAction');
+        Route::get('/utilisateur/{utilisateurId}',  [SuggestionHistoriqueController::class, 'parUtilisateur'])->name('parUtilisateur');
     });
 });
 
 // ============================================================
-// PIÈCES JOINTES — Accès direct
+// PIECES JOINTES - Acces direct
 // ============================================================
 Route::prefix('pieces-jointes')->name('pieces-jointes.')->group(function () {
     Route::get('/{id}',          [PlaintePieceJointeController::class, 'show'])->name('show');
     Route::get('/{id}/voir',     [PlaintePieceJointeController::class, 'voir'])->name('voir');
     Route::get('/{id}/download', [PlaintePieceJointeController::class, 'download'])->name('download');
     Route::delete('/{id}',       [PlaintePieceJointeController::class, 'destroy'])->name('destroy');
+});
+
+// ============================================================
+// PARTENAIRES
+// ============================================================
+Route::middleware('auth:sanctum')->prefix('partenaires')->name('partenaires.')->group(function () {
+    Route::get('stats/globales', [PartenaireController::class, 'statistiquesGlobales'])->name('stats.globales');
+
+    Route::get('/',        [PartenaireController::class, 'index'])->name('index');
+    Route::post('/',       [PartenaireController::class, 'store'])->name('store');
+
+    Route::get('/{partenaire}',        [PartenaireController::class, 'show'])->name('show');
+    Route::put('/{partenaire}',        [PartenaireController::class, 'update'])->name('update');
+    Route::patch('/{partenaire}/statut', [PartenaireController::class, 'changerStatut'])->name('statut');
+
+    Route::get('/{partenaire}/dashboard',  [PartenaireController::class, 'dashboard'])->name('dashboard');
+    Route::get('/{partenaire}/produits',   [PartenaireController::class, 'suiviProduits'])->name('produits');
+    Route::get('/{partenaire}/agents',     [PartenaireController::class, 'suiviAgents'])->name('agents');
+    Route::get('/{partenaire}/export',     [PartenaireController::class, 'export'])->name('export');
+
+    Route::get('/{partenaire}/rapprochements',  [PartenaireController::class, 'rapprochements'])->name('rapprochements');
+    Route::post('/{partenaire}/rapprochements', [PartenaireController::class, 'creerRapprochement'])->name('rapprochements.store');
+
+    Route::post('/{partenaire}/produits',               [PartenaireController::class, 'attacherProduit'])->name('produits.attacher');
+    Route::delete('/{partenaire}/produits/{idProduit}', [PartenaireController::class, 'detacherProduit'])->name('produits.detacher');
+});
+
+// ============================================================
+// CAMPAGNES
+// ============================================================
+Route::prefix('campagnes')->name('campagnes.')->group(function () {
+    
+    // ROUTES SPECIFIQUES (DOIVENT ETRE AVANT /{campagne})
+    Route::get('stats/globales', [CampagneController::class, 'statistiquesGlobales'])->name('stats.globales');
+    
+    // ROUTE POUR LES TYPES (AJOUTEE ICI)
+    Route::get('types', [CampagneController::class, 'getTypesCampagne'])->name('types');
+
+    // CRUD PRINCIPAL
+    Route::get('/',        [CampagneController::class, 'index'])->name('index');
+    Route::post('/',       [CampagneController::class, 'store'])->name('store');
+    Route::get('/{campagne}',        [CampagneController::class, 'show'])->name('show');
+    Route::put('/{campagne}',        [CampagneController::class, 'update'])->name('update');
+    Route::delete('/{campagne}',     [CampagneController::class, 'destroy'])->name('destroy');
+
+    // CYCLE DE VIE
+    Route::patch('/{campagne}/valider',   [CampagneController::class, 'valider'])->name('valider');
+    Route::patch('/{campagne}/activer',   [CampagneController::class, 'activer'])->name('activer');
+    Route::patch('/{campagne}/pause',     [CampagneController::class, 'pause'])->name('pause');
+    Route::patch('/{campagne}/reprendre', [CampagneController::class, 'reprendre'])->name('reprendre');
+    Route::patch('/{campagne}/cloturer',  [CampagneController::class, 'cloturer'])->name('cloturer');
+
+    // AGENTS
+    Route::post('/{campagne}/agents',             [CampagneController::class, 'affecterAgent'])->name('agents.affecter');
+    Route::delete('/{campagne}/agents/{idAgent}', [CampagneController::class, 'retirerAgent'])->name('agents.retirer');
+
+    // REGLES
+    Route::post('/{campagne}/regles', [CampagneController::class, 'ajouterRegle'])->name('regles.store');
+
+    // STATISTIQUES & COMPARAISONS (pour une campagne specifique)
+    Route::get('/{campagne}/stats',                 [CampagneController::class, 'statistiques'])->name('stats');
+    Route::get('/{campagne}/comparaison/agents',    [CampagneController::class, 'comparaisonParAgent'])->name('comparaison.agents');
+    Route::get('/{campagne}/comparaison/produits',  [CampagneController::class, 'comparaisonParProduit'])->name('comparaison.produits');
+    Route::get('/{campagne}/comparaison/zones',     [CampagneController::class, 'comparaisonParZone'])->name('comparaison.zones');
+    Route::get('/{campagne}/classement',            [CampagneController::class, 'classement'])->name('classement');
+
+    // EXPORT
+    Route::get('/{campagne}/export', [CampagneController::class, 'export'])->name('export');
+});
+
+// ============================================================
+// ZONES
+// ============================================================
+Route::middleware('auth:sanctum')->prefix('zones')->name('zones.')->group(function () {
+    Route::get('options', [ZoneController::class, 'options'])->name('options');
+    Route::get('/',   [ZoneController::class, 'index'])->name('index');
+    Route::post('/',  [ZoneController::class, 'store'])->name('store');
+    Route::get('/{zone}',          [ZoneController::class, 'show'])->name('show');
+    Route::put('/{zone}',          [ZoneController::class, 'update'])->name('update');
+    Route::delete('/{zone}',       [ZoneController::class, 'destroy'])->name('destroy');
+    Route::patch('/{zone}/statut', [ZoneController::class, 'changerStatut'])->name('statut');
+});
+
+// ============================================================
+// PRODUITS
+// ============================================================
+Route::middleware('auth:sanctum')->prefix('produits')->name('produits.')->group(function () {
+    Route::get('options',                [ProduitController::class, 'options'])->name('options');
+    Route::get('generer-code-barre',     [ProduitController::class, 'genererCodeBarreUnique'])->name('generer-code-barre');
+    Route::post('valider-code-barre',    [ProduitController::class, 'validerCodeBarre'])->name('valider-code-barre');
+    Route::post('bulk-destroy',          [ProduitController::class, 'bulkDestroy'])->name('bulk-destroy');
+    Route::post('imprimer-codes-barres', [ProduitController::class, 'imprimerCodesBarres'])->name('imprimer-codes-barres');
+
+    Route::get('/',   [ProduitController::class, 'index'])->name('index');
+    Route::post('/',  [ProduitController::class, 'store'])->name('store');
+
+    Route::get('/{produit}',        [ProduitController::class, 'show'])->name('show');
+    Route::put('/{produit}',        [ProduitController::class, 'update'])->name('update');
+    Route::delete('/{produit}',     [ProduitController::class, 'destroy'])->name('destroy');
+
+    Route::get('/{produit}/code-barre',   [ProduitController::class, 'genererCodeBarre'])->name('code-barre');
+    Route::get('/{produit}/etiquette',    [ProduitController::class, 'genererEtiquette'])->name('etiquette');
+    Route::get('/{produit}/images',         [ProduitController::class, 'getImages'])->name('images');
+    Route::post('/{produit}/images',        [ProduitController::class, 'uploadImage'])->name('images.upload');
+    Route::delete('/{produit}/images',      [ProduitController::class, 'deleteImage'])->name('images.delete');
+});
+
+// ============================================================
+// PRODUITS EPARGNE
+// ============================================================
+Route::middleware('auth:sanctum')->prefix('produits-epargne')->name('produits-epargne.')->group(function () {
+    Route::get('/',   [ProduitEpargneController::class, 'index'])->name('index');
+    Route::post('/',  [ProduitEpargneController::class, 'store'])->name('store');
+    Route::get('/{produitEpargne}',    [ProduitEpargneController::class, 'show'])->name('show');
+    Route::put('/{produitEpargne}',    [ProduitEpargneController::class, 'update'])->name('update');
+    Route::delete('/{produitEpargne}', [ProduitEpargneController::class, 'destroy'])->name('destroy');
+});
+
+// ============================================================
+// OPERATIONS
+// ============================================================
+Route::middleware('auth:sanctum')->prefix('operations')->name('operations.')->group(function () {
+    Route::post('/', [CampagneController::class, 'enregistrerOperation'])->name('store');
+    Route::get('/',  [CampagneController::class, 'listerOperations'])->name('index');
+});
+
+// ============================================================
+// COMMISSIONS
+// ============================================================
+Route::middleware('auth:sanctum')->prefix('commissions')->name('commissions.')->group(function () {
+    Route::patch('/{commission}/valider', [CampagneController::class, 'validerCommission'])->name('valider');
+    Route::patch('/{commission}/payer',   [CampagneController::class, 'payerCommission'])->name('payer');
+    Route::patch('/{commission}/annuler', [CampagneController::class, 'annulerCommission'])->name('annuler');
+});
+
+// ============================================================
+// MOBILE AGENT
+// ============================================================
+Route::middleware('auth:sanctum')->prefix('mobile')->name('mobile.')->group(function () {
+    Route::get('dashboard', [CampagneController::class, 'mobileDashboard'])->name('dashboard');
 });

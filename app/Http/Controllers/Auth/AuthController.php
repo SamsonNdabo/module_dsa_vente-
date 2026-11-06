@@ -23,143 +23,154 @@ class AuthController extends Controller
      * POST /login - Connexion avec session Laravel Auth
      */
         public function login(Request $request)
-{
-    $request->validate([
-        'nom_utilisateur'  => 'required|string',
-        'mot_de_passe'     => 'required|string',
-        'two_factor_code'  => 'nullable|string|size:6',
-        'request_email_code' => 'nullable|boolean',
-        'remember'         => 'nullable|boolean',
-    ]);
-
-    $remember = $request->boolean('remember');
-
-    // ─────────────────────────────────────────────
-    // Tentative avec email
-    // ─────────────────────────────────────────────
-    $credentials = [
-        'email'    => $request->nom_utilisateur,
-        'password' => $request->mot_de_passe,
-    ];
-
-    if (!Auth::attempt($credentials, $remember)) {
-
-        // Tentative avec nom d'utilisateur
+    {
+        $request->validate([
+            'nom_utilisateur' => 'required|string',
+            'mot_de_passe' => 'required|string',
+            'two_factor_code' => 'nullable|string|size:6',
+            'request_email_code' => 'nullable|boolean',
+            'remember' => 'nullable|boolean'
+        ]);
+    
+        // Tentative de connexion avec email
         $credentials = [
-            'nom_utilisateur' => $request->nom_utilisateur,
-            'password'        => $request->mot_de_passe,
+            'email' => $request->nom_utilisateur,
+            'password' => $request->mot_de_passe
         ];
-
-        if (!Auth::attempt($credentials, $remember)) {
-
-            $user = Utilisateur::where('nom_utilisateur', $request->nom_utilisateur)
-                ->orWhere('email', $request->nom_utilisateur)
-                ->first();
-
-            if ($user) {
-                $user->incrementerTentatives();
+    
+        if (!Auth::attempt($credentials, $request->remember ?? false)) {
+    
+            // Tentative avec nom d'utilisateur
+            $credentials = [
+                'nom_utilisateur' => $request->nom_utilisateur,
+                'password' => $request->mot_de_passe
+            ];
+    
+            if (!Auth::attempt($credentials, $request->remember ?? false)) {
+    
+                // Incrément des tentatives
+                $user = Utilisateur::where('nom_utilisateur', $request->nom_utilisateur)
+                    ->orWhere('email', $request->nom_utilisateur)
+                    ->first();
+    
+                if ($user) {
+                    $user->incrementerTentatives();
+                }
+    
+                return $this->reponseErreur('Identifiants incorrects', 401);
             }
-
-            return $this->reponseErreur('Identifiants incorrects', 401);
         }
-    }
-
-    /** @var Utilisateur $user */
-    $user = Auth::user();
-
-    // ─────────────────────────────────────────────
-    // Vérifications de sécurité
-    // ─────────────────────────────────────────────
-    if ($user->compte_verrouille) {
-        Auth::guard('web')->logout();
-        return $this->reponseErreur('Compte verrouillé', 403);
-    }
-
-    if ($user->statut !== 'ACTIF') {
-        Auth::guard('web')->logout();
-        return $this->reponseErreur('Compte désactivé', 403);
-    }
-
-    // ─────────────────────────────────────────────
-    // 2FA Email
-    // ─────────────────────────────────────────────
-    if ($user->two_factor_email_enabled) {
-
-        // Demande d'envoi du code
-        if ($request->boolean('request_email_code')) {
-            $user->genererEtEnvoyerCode2FAEmail();
-
-            return response()->json([
-                'success'      => false,
-                'requires_2fa' => true,
-                'type'         => 'email',
-                'message'      => 'Code envoyé par email',
-                'user_id'      => $user->id,
-            ], 200);
+    
+        /** @var Utilisateur $user */
+        $user = Auth::user();
+    
+        // Vérification du verrouillage
+        if ($user->compte_verrouille) {
+            Auth::logout();
+    
+            return $this->reponseErreur('Compte verrouillé', 403);
         }
-
-        // Code non fourni
-        if (!$request->filled('two_factor_code')) {
-            return response()->json([
-                'success'      => false,
-                'requires_2fa' => true,
-                'type'         => 'email',
-                'message'      => 'Code requis',
-                'user_id'      => $user->id,
-            ], 200);
+    
+        // Vérification du statut
+        if ($user->statut !== 'ACTIF') {
+            Auth::logout();
+    
+            return $this->reponseErreur('Compte désactivé', 403);
         }
-
-        // Code invalide
-        if (!$user->verifierCode2FAEmail($request->two_factor_code)) {
-            Auth::guard('web')->logout();
-            return $this->reponseErreur('Code invalide', 401);
+    
+        /*
+        |--------------------------------------------------------------------------
+        | Authentification à deux facteurs (2FA Email)
+        |--------------------------------------------------------------------------
+        */
+    
+        if ($user->two_factor_email_enabled) {
+    
+            // Demande d'envoi du code
+            if ($request->boolean('request_email_code')) {
+    
+                $user->genererEtEnvoyerCode2FAEmail();
+    
+                return response()->json([
+                    'success' => false,
+                    'requires_2fa' => true,
+                    'type' => 'email',
+                    'message' => 'Code envoyé par email',
+                    'user_id' => $user->id
+                ], 200);
+            }
+    
+            // Code non fourni
+            if (!$request->filled('two_factor_code')) {
+    
+                return response()->json([
+                    'success' => false,
+                    'requires_2fa' => true,
+                    'type' => 'email',
+                    'message' => 'Code requis',
+                    'user_id' => $user->id
+                ], 200);
+            }
+    
+            // Vérification du code
+            if (!$user->verifierCode2FAEmail($request->two_factor_code)) {
+    
+                Auth::logout();
+    
+                return $this->reponseErreur('Code invalide', 401);
+            }
         }
+    
+        /*
+        |--------------------------------------------------------------------------
+        | Sécurité
+        |--------------------------------------------------------------------------
+        */
+    
+        $user->resetTentatives();
+        $user->enregistrerConnexion($request);
+    
+        /*
+        |--------------------------------------------------------------------------
+        | Chargement des relations
+        |--------------------------------------------------------------------------
+        */
+    
+        $user->load([
+            'succursale',
+            'role'
+        ]);
+    
+        /*
+        |--------------------------------------------------------------------------
+        | Permissions
+        |--------------------------------------------------------------------------
+        */
+    
+        $permissions = $this->getUserPermissions($user);
+    
+        /*
+        |--------------------------------------------------------------------------
+        | Cookie de session
+        |--------------------------------------------------------------------------
+        */
+    
+        $request->session()->regenerate();
+        $user = Auth::user();
+    
+        /*
+        |--------------------------------------------------------------------------
+        | Réponse
+        |--------------------------------------------------------------------------
+        */
+    
+        return response()->json([
+            'success' => true,
+            'message' => 'Connexion réussie',
+            'user' => $this->formatUserResponse($user),
+            'permissions' => $permissions
+        ]);
     }
-
-    // ═════════════════════════════════════════════
-    // ⚠️ POINT CRITIQUE : attacher l'utilisateur à
-    // la session WEB + régénérer la session
-    // ═════════════════════════════════════════════
-
-    // 1) Force le guard 'web' à connaitre l'utilisateur
-    Auth::guard('web')->login($user, $remember);
-
-    // 2) Régénère l'ID de session (protection fixation)
-    $request->session()->regenerate();
-
-    // 3) Persiste la session tout de suite
-    $request->session()->save();
-
-    // ─────────────────────────────────────────────
-    // Reset sécurité + log
-    // ─────────────────────────────────────────────
-    // ═════════════════════════════════════════════
-// MÉTHODE TOKEN — pas de session web
-// ═════════════════════════════════════════════
-
-    $user->resetTentatives();
-    $user->enregistrerConnexion($request);
-
-    $user->load(['succursale', 'role']);
-    $permissions = $this->getUserPermissions($user);
-
-    // Crée un token Sanctum (durée : 8h par défaut)
-    $token = $user->createToken(
-        'auth_token_' . now()->timestamp,
-        $permissions,
-        now()->addHours(8)   // facultatif
-    )->plainTextToken;
-
-    return response()->json([
-        'success'     => true,
-        'message'     => 'Connexion réussie',
-        'access_token'=> $token,
-        'token_type'  => 'Bearer',
-        'expires_in'  => 8 * 3600,
-        'user'        => $this->formatUserResponse($user),
-        'permissions' => $permissions,
-    ]);
-}
     /**
      * POST /logout - Déconnexion avec Auth
      */
@@ -553,10 +564,10 @@ class AuthController extends Controller
         $permissions = $this->getUserPermissions($user);
 
         return response()->json([
-            'success'     => true,
-            'user'        => $this->formatUserResponse($user),  // ← pas $user direct
+            'success' => true,
+            'user' => $user,
             'permissions' => $permissions,
-            'roles'       => [$user->role?->code]
+            'roles' => [$user->role?->code]
         ]);
     }
 

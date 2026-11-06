@@ -1320,7 +1320,7 @@ class StockSuccursale extends Model
             throw new \Exception("Réservation insuffisante à libérer");
         }
     
-        // ✅ Ne toucher qu'à quantite_reserve
+        //  Ne toucher qu'à quantite_reserve
         $this->quantite_reserve -= $quantite;
         $this->save();
     

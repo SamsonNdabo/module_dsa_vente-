@@ -413,7 +413,7 @@ class Facture extends Model
                         !empty($ligne->lots_fifo_utilises)
                         && is_array($ligne->lots_fifo_utilises)
                     ) {
-                        // ✅ Restaurer les lots FIFO utilisés
+                        //  Restaurer les lots FIFO utilisés
                         foreach ($ligne->lots_fifo_utilises as $lot) {
     
                             $mouvement = MouvementStock::find(
@@ -427,7 +427,7 @@ class Facture extends Model
                         }
                     }
     
-                    // ✅ Utiliser la méthode correcte : augmenterStockFIFO()
+                    //  Utiliser la méthode correcte : augmenterStockFIFO()
                     if ($stock) {
                         // Restaurer le stock avec création d'un mouvement de retour
                         $stock->augmenterStockFIFO(
@@ -998,7 +998,7 @@ class Facture extends Model
     /**
      * Scopes
      */
-    // ✅ CORRECTION de la méthode getTypeLabelAttribute
+    //  CORRECTION de la méthode getTypeLabelAttribute
     public function getTypeLabelAttribute(): string
     {
         if (
@@ -1011,7 +1011,7 @@ class Facture extends Model
         return 'Vente';
     }
 
-// ✅ CORRECTION de la méthode getStatutLabelAttribute
+//  CORRECTION de la méthode getStatutLabelAttribute
 public function getStatutLabelAttribute(): string
 {
     if (

@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\Log;
 
 class RfqFournisseurController extends Controller
 {
-    // ✅ Constantes
+    //  Constantes
     private const ROLES_FULL_ACCESS = ['SUPER_ADMIN','CHEF_OPERATIONS','AUDITEUR'];
     private const STATUTS_ANNULABLES = ['BROUILLON', 'ENVOYEE', 'EN_ATTENTE_REPONSE'];
 
@@ -52,12 +52,12 @@ class RfqFournisseurController extends Controller
             }
         ]);
 
-        // ✅ Filtrage par utilisateur
+        //  Filtrage par utilisateur
         if (!in_array($user->role?->code, self::ROLES_FULL_ACCESS) && !$user->hasPermission('manage-all-users')) {
             $query->where('cree_par_id', $user->id);
         }
 
-        // ✅ Filtres
+        //  Filtres
         if ($request->filled('statut')) {
             $query->where('statut', $request->statut);
         }
@@ -74,7 +74,7 @@ class RfqFournisseurController extends Controller
             $query->where('rfq_group_uuid', $request->rfq_group_uuid);
         }
 
-        // ✅ Recherche optimisée - Une seule requête
+        //  Recherche optimisée - Une seule requête
         if ($request->filled('recherche')) {
             $search = $request->recherche;
             $query->where(function($q) use ($search) {
@@ -133,7 +133,7 @@ class RfqFournisseurController extends Controller
             $rfqs = [];
             $rfqIds = [];
 
-            // ✅ Préparer les données des lignes une seule fois
+            //  Préparer les données des lignes une seule fois
             $lignesData = $this->prepareLignesData($request->lignes);
 
             foreach ($request->fournisseurs as $fournisseurData) {
@@ -151,7 +151,7 @@ class RfqFournisseurController extends Controller
                 $rfqs[] = $rfq;
             }
 
-            // ✅ Insertion groupée des lignes pour tous les RFQ
+            //  Insertion groupée des lignes pour tous les RFQ
             $allLignesData = [];
             foreach ($rfqIds as $rfqId) {
                 foreach ($lignesData as $ligne) {
@@ -227,7 +227,7 @@ class RfqFournisseurController extends Controller
             }
         ])->findOrFail($id);
 
-        // ✅ Vérification d'accès
+        //  Vérification d'accès
         if (!in_array($user->role?->code, self::ROLES_FULL_ACCESS) &&
             !$user->hasPermission('manage-all-users') &&
             $rfq->cree_par_id != $user->id) {

@@ -102,7 +102,7 @@ class POSController extends Controller
             'panier.*.quantite' => 'required|integer|min:1',
             'panier.*.remise_ligne' => 'sometimes|numeric|min:0',
             'panier.*.type_remise_ligne' => 'sometimes|in:FIXE,POURCENTAGE',
-            // ✅ AJOUT : Validation des IMEI pour les produits qui en ont besoin
+            //  AJOUT : Validation des IMEI pour les produits qui en ont besoin
             'panier.*.imei_ids' => 'nullable|array',
             'panier.*.imei_ids.*' => 'nullable|integer|exists:produit_imei,id',
             'notes' => 'nullable|string|max:500',
@@ -654,12 +654,12 @@ class POSController extends Controller
             }
     
             // Récupérer les IMEI EN_STOCK dans la succursale du caissier
-            // ✅ Avec filtre sur le statut du lot = ACTIF
+            //  Avec filtre sur le statut du lot = ACTIF
             $imeis = ProduitImei::where('produit_id', $produitId)
                 ->where('succursale_id', $user->succursale_id)
                 ->where('statut', ProduitImei::STATUT_EN_STOCK)
                 ->whereHas('lotStock', function ($query) {
-                    $query->where('statut', 'ACTIF'); // ✅ Filtrer les lots ACTIFS
+                    $query->where('statut', 'ACTIF'); //  Filtrer les lots ACTIFS
                 })
                 ->with('lotStock')
                 ->orderBy('lot_stock_id')
@@ -682,7 +682,7 @@ class POSController extends Controller
                             'lot_id' => $imei->lot_stock_id,
                             'prix_achat' => $imei->prix_achat,
                             'est_sous_garantie' => $imei->est_sous_garantie,
-                            'lot_statut' => $imei->lotStock?->statut, // ✅ Ajout du statut du lot pour info
+                            'lot_statut' => $imei->lotStock?->statut, //  Ajout du statut du lot pour info
                         ];
                     })->toArray(),
                     'quantite_disponible' => $imeis->count(),

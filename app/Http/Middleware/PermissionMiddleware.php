@@ -26,7 +26,7 @@ class PermissionMiddleware
 
         $user = auth()->user();
 
-        // ✅ SUPER ADMIN a toujours accès
+        //  SUPER ADMIN a toujours accès
         if ($user->role && $user->role->code === 'SUPER_ADMIN') {
             Log::info('Super Admin - accès automatique', [
                 'user_id' => $user->id,
@@ -36,7 +36,7 @@ class PermissionMiddleware
             return $next($request);
         }
 
-        // ✅ GESTION DES PERMISSIONS MULTIPLES
+        //  GESTION DES PERMISSIONS MULTIPLES
         // Si la permission contient un pipe "|", c'est une condition OU
         if (str_contains($permission, '|')) {
             $permissions = explode('|', $permission);
@@ -69,7 +69,7 @@ class PermissionMiddleware
             ], 403);
         }
         
-        // ✅ Si la permission contient une virgule ",", c'est aussi une condition OU
+        //  Si la permission contient une virgule ",", c'est aussi une condition OU
         if (str_contains($permission, ',')) {
             $permissions = explode(',', $permission);
             
@@ -100,7 +100,7 @@ class PermissionMiddleware
             ], 403);
         }
 
-        // ✅ Permission simple (une seule)
+        //  Permission simple (une seule)
         if (!$user->hasPermission($permission)) {
             Log::warning('Permission refusée (simple)', [
                 'user_id' => $user->id,

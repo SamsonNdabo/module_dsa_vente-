@@ -40,7 +40,7 @@ class RemiseService
             ];
         }
 
-        // ✅ Récupérer tous les produits en UNE SEULE REQUÊTE
+        //  Récupérer tous les produits en UNE SEULE REQUÊTE
         $produitIds = $lignes->pluck('produit_id')->filter()->unique()->toArray();
         $produits = [];
         if (!empty($produitIds)) {
@@ -60,7 +60,7 @@ class RemiseService
             $produitId = $ligne['produit_id'] ?? null;
             $produit = isset($produits[$produitId]) ? (object) $produits[$produitId] : null;
             
-            // ✅ Compatibilité : utiliser 'prix_unitaire' (comme le frontend)
+            //  Compatibilité : utiliser 'prix_unitaire' (comme le frontend)
             $prixUnitaire = $ligne['prix_unitaire'] ?? $ligne['prix_unitaire_ht'] ?? 0;
             $montantLigne = ($ligne['quantite'] ?? 0) * $prixUnitaire;
 
@@ -102,7 +102,7 @@ class RemiseService
         $remiseGlobale = 0;
         $remiseGlobaleRegle = null;
         
-        // ✅ Compatibilité : calcul du montant global avec 'prix_unitaire'
+        //  Compatibilité : calcul du montant global avec 'prix_unitaire'
         $montantGlobal = $sousTotal ?? $lignes->sum(function($l) {
             $prix = $l['prix_unitaire'] ?? $l['prix_unitaire_ht'] ?? 0;
             return ($l['quantite'] ?? 0) * $prix;

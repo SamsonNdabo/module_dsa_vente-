@@ -2,6 +2,7 @@
 
 namespace App\Services\PlainteSuggestion;
 
+use App\Models\PlainteSuggestion\Plainte;
 use App\Models\PlainteSuggestion\PlainteHistorique;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -9,16 +10,32 @@ use Illuminate\Pagination\LengthAwarePaginator;
 class PlainteHistoriqueService
 {
     // =========================================================
+    // 🔍 RÉSOUDRE UNE PLAINTE (ID ou Référence)
+    // =========================================================
+    public function trouverPlainte($plainteId): Plainte
+    {
+        // Si c'est un nombre pur → on cherche par ID
+        if (is_numeric($plainteId) && ctype_digit((string) $plainteId)) {
+            return Plainte::findOrFail((int) $plainteId);
+        }
+
+        // Sinon → on cherche par référence (ex: "PL-2026-0002")
+        return Plainte::where('reference', $plainteId)->firstOrFail();
+    }
+
+    // =========================================================
     // 📋 LISTE FILTRÉE PAR PLAINTE
     // =========================================================
-    public function lister(int $plainteId, array $filtres = []): LengthAwarePaginator
+    public function lister($plainteId, array $filtres = []): LengthAwarePaginator
     {
+        $plainte = $this->trouverPlainte($plainteId);
+
         $query = PlainteHistorique::with([
                 'utilisateur:id,nom_complet',
                 'ancienUtilisateur:id,nom_complet',
                 'nouveauUtilisateur:id,nom_complet',
             ])
-            ->where('plainte_id', $plainteId);
+            ->where('plainte_id', $plainte->id);
 
         $query->when($filtres['action'] ?? null, fn ($q, $v) => $q->where('action', $v))
               ->when($filtres['utilisateur_id'] ?? null, fn ($q, $v) => $q->where('utilisateur_id', $v))
@@ -39,27 +56,33 @@ class PlainteHistoriqueService
     }
 
     // =========================================================
-    // 🔍 FILTRES SPÉCIFIQUES
+    // 🔍 FILTRES SPÉCIFIQUES (tous utilisent trouverPlainte)
     // =========================================================
-    public function parAction(int $plainteId, string $action): Collection
+    public function parAction($plainteId, string $action): Collection
     {
-        return PlainteHistorique::where('plainte_id', $plainteId)
+        $plainte = $this->trouverPlainte($plainteId);
+
+        return PlainteHistorique::where('plainte_id', $plainte->id)
             ->where('action', $action)
             ->orderByDesc('created_at')
             ->get();
     }
 
-    public function parUtilisateur(int $plainteId, int $utilisateurId): Collection
+    public function parUtilisateur($plainteId, int $utilisateurId): Collection
     {
-        return PlainteHistorique::where('plainte_id', $plainteId)
+        $plainte = $this->trouverPlainte($plainteId);
+
+        return PlainteHistorique::where('plainte_id', $plainte->id)
             ->where('utilisateur_id', $utilisateurId)
             ->orderByDesc('created_at')
             ->get();
     }
 
-    public function dernierChangement(int $plainteId): ?PlainteHistorique
+    public function dernierChangement($plainteId): ?PlainteHistorique
     {
-        return PlainteHistorique::where('plainte_id', $plainteId)
+        $plainte = $this->trouverPlainte($plainteId);
+
+        return PlainteHistorique::where('plainte_id', $plainte->id)
             ->orderByDesc('created_at')
             ->first();
     }
@@ -67,9 +90,11 @@ class PlainteHistoriqueService
     // =========================================================
     // 📊 STATISTIQUES
     // =========================================================
-    public function compterParAction(int $plainteId): array
+    public function compterParAction($plainteId): array
     {
-        return PlainteHistorique::where('plainte_id', $plainteId)
+        $plainte = $this->trouverPlainte($plainteId);
+
+        return PlainteHistorique::where('plainte_id', $plainte->id)
             ->selectRaw('action, COUNT(*) as total')
             ->groupBy('action')
             ->pluck('total', 'action')
@@ -77,10 +102,12 @@ class PlainteHistoriqueService
     }
 
     // =========================================================
-    // 🗑️ SUPPRESSION (rarement utilisée)
+    // 🗑️ SUPPRESSION
     // =========================================================
-    public function supprimerTout(int $plainteId): int
+    public function supprimerTout($plainteId): int
     {
-        return PlainteHistorique::where('plainte_id', $plainteId)->delete();
+        $plainte = $this->trouverPlainte($plainteId);
+
+        return PlainteHistorique::where('plainte_id', $plainte->id)->delete();
     }
 }

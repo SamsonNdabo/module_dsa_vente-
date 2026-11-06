@@ -283,7 +283,7 @@ class OperationChange extends Model
             'spread_achat'     => (float) $exchangeRate->spread_achat,
             'spread_vente'     => (float) $exchangeRate->spread_vente,
             'commission'       => $commission,
-            'exchange_rate_id' => $exchangeRateId, // ✅ toujours un ID de exchange_rates
+            'exchange_rate_id' => $exchangeRateId, //  toujours un ID de exchange_rates
             'caisse_exchange_rate_id'   => $caisseExchangeRateId,
             'succursale_exchange_rate_id' => $succursaleExchangeRateId,
             'operateur_id'     => $operateurId,

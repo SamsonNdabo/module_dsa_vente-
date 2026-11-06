@@ -37,7 +37,7 @@ protected $fillable = [
     'delai_livraison',
     'notes',
     'notes_internes',
-    'fichier_pdf',  // ✅ Champ pour le document
+    'fichier_pdf',  //  Champ pour le document
     'valide_par_id',
     'date_validation',
     'metadata'

@@ -21,10 +21,10 @@ class CommandeFournisseurMail extends Mailable
         $this->commande = $commande;
         $this->fournisseur = $commande->fournisseur;
         
-        // ✅ Chargement des lignes avec leurs champs existants
+        //  Chargement des lignes avec leurs champs existants
         $this->lignes = $commande->lignes()->with('produit')->get();
         
-        // ✅ Vérification
+        //  Vérification
         if ($this->lignes->isEmpty()) {
             Log::warning('Commande sans lignes', ['commande_id' => $commande->id]);
         }

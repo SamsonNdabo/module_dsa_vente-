@@ -54,7 +54,7 @@ class CommandeService
                 $quantite = (int) $item['quantite'];
                 $prixUnitaire = (float) $item['prix_unitaire'];
 
-                // ✅ Le client ne sait pas ce qu'est un IMEI
+                //  Le client ne sait pas ce qu'est un IMEI
                 // On enregistre juste le besoin pour la logistique
                 if ($produit->gere_imei) {
                     $besoinsImei[$produit->id] = ($besoinsImei[$produit->id] ?? 0) + $quantite;
@@ -82,26 +82,21 @@ class CommandeService
             $fraisLivraison = $this->calculerFraisLivraison($modeLivraison, $sousTotal - $totalRemise);
 
             $commande = CommandeClient::create([
-                'client_id'                => $client->id,
-                'statut'                   => 'EN_ATTENTE_PAIEMENT',
-                'statut_logistique'        => 'EN_ATTENTE',
-                'sous_total'               => $sousTotal,
-                'remise'                   => $totalRemise,
-                'frais_livraison'          => $fraisLivraison,
-                'total'                    => ($sousTotal - $totalRemise) + $fraisLivraison,
-                'mode_livraison'           => $modeLivraison,
-                'adresse_livraison'        => $data['adresse_livraison'] ?? null,
-                'telephone_livraison'      => $data['telephone_livraison'] ?? $client->telephone,
-                'date_livraison_souhaitee' => $data['date_livraison_souhaitee'] ?? null,  // 🆕
-                'est_recurrente'           => $data['est_recurrente'] ?? false,            // 🆕
-                'recurrence_type'          => $data['recurrence_type'] ?? 'AUCUNE',        // 🆕
-                'recurrence_intervalle'    => $data['recurrence_intervalle'] ?? null,      // 🆕
-                'recurrence_date_fin'      => $data['recurrence_date_fin'] ?? null,        // 🆕
-                'recurrence_nb_occurrences'=> $data['recurrence_nb_occurrences'] ?? null,  // 🆕
-                'notes'                    => $data['notes'] ?? null,
-                'metadata'                 => array_merge($data['metadata'] ?? [], [
+                'client_id' => $client->id,
+                'statut' => 'EN_ATTENTE_PAIEMENT',
+                'statut_logistique' => 'EN_ATTENTE',
+                'sous_total' => $sousTotal,
+                'remise' => $totalRemise,
+                'frais_livraison' => $fraisLivraison,
+                'total' => ($sousTotal - $totalRemise) + $fraisLivraison,
+                'mode_livraison' => $modeLivraison,
+                'adresse_livraison' => $data['adresse_livraison'] ?? null,
+                'telephone_livraison' => $data['telephone_livraison'] ?? $client->telephone,
+                'notes' => $data['notes'] ?? null,
+                'metadata' => array_merge($data['metadata'] ?? [], [
+                    //  Besoins IMEI stockés pour la logistique, invisibles pour le client
                     'besoins_imei' => $besoinsImei,
-                    'source'       => 'ECOMMERCE',
+                    'source' => 'ECOMMERCE',
                 ]),
             ]);
 
@@ -135,7 +130,7 @@ class CommandeService
         DB::transaction(function () use ($commande, $referencePaiement) {
             $commande->load(['lignes.produit', 'client', 'succursaleAssignee.entite', 'livraison']);
 
-            // ✅ Vérification interne des IMEI, invisible pour le client
+            //  Vérification interne des IMEI, invisible pour le client
             $besoinsImei = $commande->metadata['besoins_imei'] ?? [];
             
             if (!empty($besoinsImei)) {
@@ -149,15 +144,15 @@ class CommandeService
                 }
             }
 
-            // ✅ Paiement validé normalement
+            //  Paiement validé normalement
             $commande->validerPaiement($referencePaiement);
 
-            // ✅ Historique livraison
+            //  Historique livraison
             if ($commande->livraison) {
                 $commande->livraison->ajouterHistorique('PAYEE', 'Paiement confirmé.');
             }
 
-            // ✅ Écritures comptables
+            //  Écritures comptables
             $entite = $commande->succursaleAssignee?->entite;
             if (!$entite) {
                 throw new \Exception("Aucune entité comptable trouvée pour cette commande.");
@@ -271,7 +266,7 @@ class CommandeService
                     'nouveau_frais' => $fraisLivraison
                 ]);
 
-                // ✅ Vérifier que la succursale a assez d'IMEI
+                //  Vérifier que la succursale a assez d'IMEI
                 foreach ($commande->lignes as $ligne) {
                     if ($ligne->produit->gere_imei) {
                         $disponibles = ProduitImei::where('produit_id', $ligne->produit_id)
@@ -287,7 +282,7 @@ class CommandeService
                             );
                         }
 
-                        // ✅ On stocke juste le besoin en IMEI pour cette succursale
+                        //  On stocke juste le besoin en IMEI pour cette succursale
                         $ligne->metadata = array_merge($ligne->metadata ?? [], [
                             'quantite_imei_besoin' => $ligne->quantite,
                             'succursale_assigne' => $succursaleId,
@@ -300,7 +295,7 @@ class CommandeService
                 // Assignation de la succursale (inchangé)
                 $commande->assignerSuccursale($succursale, $utilisateur);
 
-                // ✅ Réservation du stock via la méthode métier
+                //  Réservation du stock via la méthode métier
                 foreach ($commande->lignes as $ligne) {
                     $stock = StockSuccursale::where('succursale_id', $succursaleId)
                         ->where('produit_id', $ligne->produit_id)
@@ -346,7 +341,7 @@ class CommandeService
             return ['imeis' => [], 'message' => 'La commande n\'est pas encore assignée à une succursale'];
         }
 
-        // ✅ Récupérer tous les IMEI EN_STOCK dans cette succursale
+        //  Récupérer tous les IMEI EN_STOCK dans cette succursale
         $imeis = ProduitImei::where('produit_id', $ligne->produit_id)
             ->where('succursale_id', $succursaleId)
             ->where('statut', ProduitImei::STATUT_EN_STOCK)
@@ -385,7 +380,7 @@ class CommandeService
 
             foreach ($commande->lignes as $ligne) {
                 if ($ligne->produit->gere_imei) {
-                    // ✅ Récupérer les IMEI sélectionnés pour cette ligne
+                    //  Récupérer les IMEI sélectionnés pour cette ligne
                     $imeiIds = $imeiSelections[$ligne->id] ?? [];
 
                     if (empty($imeiIds) || count($imeiIds) !== $ligne->quantite) {
@@ -395,7 +390,7 @@ class CommandeService
                         );
                     }
 
-                    // ✅ Vérifier que les IMEI existent, sont EN_STOCK, et dans la bonne succursale
+                    //  Vérifier que les IMEI existent, sont EN_STOCK, et dans la bonne succursale
                     $imeis = ProduitImei::whereIn('id', $imeiIds)
                         ->where('produit_id', $ligne->produit_id)
                         ->where('succursale_id', $commande->succursale_assignee_id)
@@ -410,14 +405,14 @@ class CommandeService
                         );
                     }
 
-                    // ✅ Réserver individuellement les IMEI sélectionnés
+                    //  Réserver individuellement les IMEI sélectionnés
                     foreach ($imeis as $imei) {
                         $imei->statut = ProduitImei::STATUT_RESERVE;
                         $imei->commande_id = $commande->id;
                         $imei->save();
                     }
 
-                    // ✅ Marquer en préparation
+                    //  Marquer en préparation
                     foreach ($imeis as $imei) {
                         $imei->statut = ProduitImei::STATUT_EN_PREPARATION;
                         $imei->save();
@@ -538,7 +533,7 @@ class CommandeService
                 if ($ligne->produit->gere_imei) {
                     $imeiIds = $ligne->metadata['imeis_expedies'] ?? [];
                     
-                    // ✅ Marquer les IMEI comme livrés (VENDU)
+                    //  Marquer les IMEI comme livrés (VENDU)
                     $this->imeiService->marquerImeisLivres($imeiIds, $commande->id);
                     
                     $ligne->metadata = array_merge($ligne->metadata ?? [], [
@@ -575,7 +570,7 @@ class CommandeService
 
                     foreach ($imeis as $imei) {
                         if (in_array($imei->statut, [ProduitImei::STATUT_RESERVE, ProduitImei::STATUT_EN_PREPARATION])) {
-                            // ✅ Remettre en stock
+                            //  Remettre en stock
                             $imei->statut = ProduitImei::STATUT_EN_STOCK;
                             $imei->commande_id = null;
                         } else {

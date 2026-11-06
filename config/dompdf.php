@@ -59,7 +59,7 @@ return [
 
         /**
          * Whether to enable font subsetting or not.
-         * ✅ IMPORTANT: Mettre à true pour réduire la taille du PDF
+         *  IMPORTANT: Mettre à true pour réduire la taille du PDF
          */
         'enable_font_subsetting' => true,
 
@@ -75,7 +75,7 @@ return [
 
         /**
          * The default paper size.
-         * ✅ Pour les factures A4
+         *  Pour les factures A4
          */
         'default_paper_size' => 'a4',
 
@@ -86,14 +86,14 @@ return [
 
         /**
          * The default font family
-         * ✅ Important: Utiliser une police qui supporte les accents français
+         *  Important: Utiliser une police qui supporte les accents français
          */
         'default_font' => 'DejaVu Sans',
 
         /**
          * Image DPI setting
          */
-        'dpi' => 150, // ✅ Augmenté pour une meilleure qualité d'impression
+        'dpi' => 150, //  Augmenté pour une meilleure qualité d'impression
 
         /**
          * Enable embedded PHP
@@ -108,7 +108,7 @@ return [
 
         /**
          * Enable remote file access
-         * ✅ Mettre à true pour charger les images distantes (logo)
+         *  Mettre à true pour charger les images distantes (logo)
          */
         'enable_remote' => true,
 

@@ -21,9 +21,9 @@ class LigneReceptionFournisseur extends Model
         'quantite_casse',
         'quantite_perdue',
         'quantite_non_conforme',
-        'prix_unitaire_ht',        // ✅ Prix saisi à la réception
-        'taux_tva',                // ✅ TVA saisi à la réception
-        'remise',                  // ✅ Remise saisi à la réception
+        'prix_unitaire_ht',        //  Prix saisi à la réception
+        'taux_tva',                //  TVA saisi à la réception
+        'remise',                  //  Remise saisi à la réception
         'lot_id',
         'date_expiration_lot',
         'numero_lot',
@@ -169,10 +169,10 @@ class LigneReceptionFournisseur extends Model
             throw new \Exception('Le stock de destination n\'est pas lié à une succursale');
         }
 
-        // ✅ Prix saisi à la réception (avec remise)
+        //  Prix saisi à la réception (avec remise)
         $prixAchatApresRemise = $this->prix_apres_remise;
 
-        // ✅ Créer le lot FIFO
+        //  Créer le lot FIFO
         $mouvement = MouvementStock::creerLotEntree(
             $this->produit_id,
             $stock->id,

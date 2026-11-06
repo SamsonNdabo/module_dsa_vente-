@@ -32,7 +32,7 @@ trait Auditable
                 'id_utilisateur' => auth()->id(),
                 'adresse_ip' => Request::ip(),
                 'user_agent' => Request::userAgent(),
-                'description' => $this->generateAuditDescription($action), // ✅ CORRIGÉ
+                'description' => $this->generateAuditDescription($action), //  CORRIGÉ
                 'niveau_importance' => $importance
             ]);
 

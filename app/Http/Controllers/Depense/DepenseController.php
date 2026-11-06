@@ -129,7 +129,7 @@ class DepenseController extends Controller
                 'categorie_depense_id' => $validated['categorie_depense_id'],
                 'devise_id'            => $validated['devise_id'],
                 'montant'              => $validated['montant'],
-                'montant_usd'          => $montantUsd, // ✅ ajout
+                'montant_usd'          => $montantUsd, //  ajout
                 'motif'                => $validated['motif'],
                 'reference'            => $validated['reference'] ?? null,
                 'date_depense'         => $validated['date_depense'],
@@ -138,7 +138,7 @@ class DepenseController extends Controller
             ]);
         });
     
-        // ✅ NOTIFICATION SELON LE RÔLE DU DEMANDEUR
+        //  NOTIFICATION SELON LE RÔLE DU DEMANDEUR
         $this->notifierNouvelleDepense($depense, $user, $caisse, $categorie);
     
         return response()->json([
@@ -149,7 +149,7 @@ class DepenseController extends Controller
     }
 
     /**
-     * ✅ NOUVELLE MÉTHODE : Notifier selon le rôle du demandeur
+     *  NOUVELLE MÉTHODE : Notifier selon le rôle du demandeur
      */
     protected function notifierNouvelleDepense($depense, $user, $caisse, $categorie)
     {
@@ -242,7 +242,7 @@ class DepenseController extends Controller
                     'montant' => $depense->montant
                 ]);
 
-            // ✅ SI LE DEMANDEUR N'EST PAS CHEF_AGENCE → NOTIFIER CHEF_AGENCE
+            //  SI LE DEMANDEUR N'EST PAS CHEF_AGENCE → NOTIFIER CHEF_AGENCE
             } else {
                 $this->notifierDestinatairesSpecifiques([
                     'destinataires' => [
@@ -497,7 +497,7 @@ class DepenseController extends Controller
     }
 
     /**
-     * ✅ Notifier le demandeur que sa dépense a été validée
+     *  Notifier le demandeur que sa dépense a été validée
      */
     protected function notifierDepenseValidee($depense, $validateur)
     {
@@ -515,7 +515,7 @@ class DepenseController extends Controller
                         'id' => $depense->created_by
                     ],
                     'type' => 'NOUVELLE_DEPENSE',
-                    'titre' => "✅ Dépense validée",
+                    'titre' => " Dépense validée",
                     'message' => "Votre dépense a été validée par {$validateurNom}.\n\n" .
                                  "Référence: {$reference}\n" .
                                  "Montant: {$montantFormate} {$deviseCode}\n" .
@@ -540,7 +540,7 @@ class DepenseController extends Controller
     }
 
     /**
-     * ✅ Notifier le demandeur que sa dépense a été rejetée
+     *  Notifier le demandeur que sa dépense a été rejetée
      */
     protected function notifierDepenseRejetee($depense, $rejeteur)
     {

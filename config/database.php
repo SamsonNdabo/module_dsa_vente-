@@ -53,7 +53,7 @@ return [
             ]) : [],
         ],
 
-        // ✅ AJOUT : Connexion vers la base du backend principal pour les sessions
+        //  AJOUT : Connexion vers la base du backend principal pour les sessions
         'mysql_saas' => [
             'driver' => 'mysql',
             'url' => env('DB_SAAS_URL'),

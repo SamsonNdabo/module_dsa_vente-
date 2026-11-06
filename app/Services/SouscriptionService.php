@@ -332,6 +332,8 @@ class SouscriptionService
                     'caisse_id_prevue' => $caisseId,
                 ]),
             ]);
+            // 🆕 Marquer la facture comme nécessitant activation SIM (si applicable)
+            $this->marquerFacturesPourActivationSim($lignesStandards, $facture);
 
             $caisse = Caisses::find($caisseId);
 
@@ -762,5 +764,38 @@ class SouscriptionService
         }
 
         return $caisse->id;
+    }
+
+    /**
+ * Marque la facture comme nécessitant activation SIM (sans créer l'activation).
+ * L'agent verra un badge "À activer" sur la page /activations-sim.
+ */
+    private function marquerFacturesPourActivationSim(array $lignesStandards, Facture $facture): void
+    {
+        $produitsSim = [];
+
+        foreach ($lignesStandards as $l) {
+            $produit = $l['produit'];
+            if (! $produit->gere_imei) continue;
+
+            $nom = strtoupper($produit->nom);
+            $estSim = str_contains($nom, 'SIM') || str_contains($nom, 'CARTE');
+            if (! $estSim) continue;
+
+            $produitsSim[] = [
+                'produit_id' => $produit->id,
+                'nom'        => $produit->nom,
+                'quantite'   => (int) $l['quantite'],
+            ];
+        }
+
+        if (empty($produitsSim)) return;
+
+        $facture->update([
+            'metadata' => array_merge($facture->metadata ?? [], [
+                'activation_sim_requise' => true,
+                'produits_sim'           => $produitsSim,
+            ]),
+        ]);
     }
 }

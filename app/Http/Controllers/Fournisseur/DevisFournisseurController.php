@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\Schema;
 
 class DevisFournisseurController extends Controller
 {
-    // ✅ Constantes
+    //  Constantes
     private const ROLES_FULL_ACCESS = ['SUPER_ADMIN', 'AUDITEUR', 'CHEF_OPERATIONS'];
     private const STATUTS_MODIFIABLES = ['RECU', 'EN_NEGOCIATION'];
     private const STATUTS_SUPPRIMABLES = ['RECU', 'EN_NEGOCIATION', 'EXPIRE'];
@@ -74,7 +74,7 @@ class DevisFournisseurController extends Controller
             }
         }
 
-        // ✅ Filtres
+        //  Filtres
         if ($request->filled('statut')) {
             $query->where('statut', $request->statut);
         }
@@ -162,18 +162,18 @@ class DevisFournisseurController extends Controller
                 'conditions_paiement' => $request->conditions_paiement,
                 'delai_livraison' => $request->delai_livraison,
                 'notes' => $request->notes,
-                // ✅ Utiliser 'cree_par_id' si la colonne existe, sinon 'created_by'
+                //  Utiliser 'cree_par_id' si la colonne existe, sinon 'created_by'
                 'cree_par_id' => auth()->id()
             ]);
 
-            // ✅ Création des lignes en BULK
+            //  Création des lignes en BULK
             $lignesData = $this->prepareLignesData($request, $rfq, $devis->id);
 
             if (!empty($lignesData)) {
                 DevisLigne::insert($lignesData);
             }
 
-            // ✅ Mettre à jour le statut de la RFQ
+            //  Mettre à jour le statut de la RFQ
             if ($rfq && $rfq->statut === 'ENVOYEE') {
                 $rfq->marquerReponseRecue();
             }
@@ -242,7 +242,7 @@ class DevisFournisseurController extends Controller
             }
         ])->findOrFail($id);
 
-        // ✅ Vérifier si les attributs existent avant de les utiliser
+        //  Vérifier si les attributs existent avant de les utiliser
         if (method_exists($devis, 'getHasFichierPdfAttribute')) {
             $devis->has_pdf = $devis->has_fichier_pdf;
         } else {

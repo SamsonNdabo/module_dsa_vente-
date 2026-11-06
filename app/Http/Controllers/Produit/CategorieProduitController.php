@@ -30,7 +30,7 @@ class CategorieProduitController extends Controller
             ], 403);
         }
         
-        // ✅ Sélection des colonnes nécessaires
+        //  Sélection des colonnes nécessaires
         $query = CategorieProduit::select([
             'id', 'code', 'nom', 'description', 'statut',
             'created_at', 'updated_at'
@@ -120,13 +120,13 @@ class CategorieProduitController extends Controller
             ], 403);
         }
         
-        // ✅ Sélection des colonnes nécessaires
+        //  Sélection des colonnes nécessaires
         $categorie = CategorieProduit::select([
             'id', 'code', 'nom', 'description', 'statut',
             'created_at', 'updated_at'
         ])->withCount('produits')->findOrFail($id);
 
-        // ✅ Nombre de produits actifs - une seule requête
+        //  Nombre de produits actifs - une seule requête
         $produitsActifs = $categorie->produits()->where('actif', true)->count();
 
         return response()->json([
@@ -224,7 +224,7 @@ class CategorieProduitController extends Controller
             ], 403);
         }
         
-        // ✅ Sélection des colonnes nécessaires
+        //  Sélection des colonnes nécessaires
         $categories = CategorieProduit::select([
             'id', 'code', 'nom', 'statut'
         ])->withCount('produits')
@@ -261,7 +261,7 @@ class CategorieProduitController extends Controller
         
         $categorie = CategorieProduit::select(['id', 'nom'])->findOrFail($id);
         
-        // ✅ Sélection des colonnes nécessaires
+        //  Sélection des colonnes nécessaires
         $query = $categorie->produits()->select([
             'id', 'code_barre', 'nom', 'description', 'marque', 'modele',
             'type', 'prix_vente', 'prix_vente_TTC', 'stock_minimum',
@@ -348,18 +348,18 @@ class CategorieProduitController extends Controller
             ], 403);
         }
         
-        // ✅ UNE SEULE REQUÊTE pour les statistiques principales
+        //  UNE SEULE REQUÊTE pour les statistiques principales
         $stats = CategorieProduit::selectRaw("
             COUNT(*) as total,
             SUM(CASE WHEN statut = 1 THEN 1 ELSE 0 END) as actives,
             SUM(CASE WHEN statut = 0 THEN 1 ELSE 0 END) as inactives
         ")->first();
 
-        // ✅ Catégories avec/sans produits
+        //  Catégories avec/sans produits
         $avecProduits = CategorieProduit::has('produits')->count();
         $sansProduits = CategorieProduit::doesntHave('produits')->count();
 
-        // ✅ Top catégories - UNE SEULE requête
+        //  Top catégories - UNE SEULE requête
         $topCategories = CategorieProduit::select([
             'id', 'nom'
         ])->withCount('produits')

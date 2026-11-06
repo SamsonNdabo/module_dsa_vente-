@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Log;
 class BudgetAlertService
 {
     /**
-     * ✅ Service de calcul principal
+     *  Service de calcul principal
      *    → C'est LUI qui fait TOUS les calculs
      *    → BudgetAlertService NE RECALCULE RIEN
      */
@@ -27,7 +27,7 @@ class BudgetAlertService
     // =========================================================================
 
     /**
-     * ✅ Détecte si une section est de type REVENU ou CHARGE
+     *  Détecte si une section est de type REVENU ou CHARGE
      */
     private function detecterTypeSection($libelleSection): string
     {
@@ -67,7 +67,7 @@ class BudgetAlertService
     // =========================================================================
 
     /**
-     * ✅ Analyse les statistiques pour le dashboard
+     *  Analyse les statistiques pour le dashboard
      *
      *  ⚠️ IMPORTANT :
      *  ─────────────────────────────────────────────────────────
@@ -87,7 +87,7 @@ class BudgetAlertService
             return $this->getStatistiquesVides($periodeId);
         }
 
-        // ✅ APPEL UNIQUE au service de calcul
+        //  APPEL UNIQUE au service de calcul
         $result = $this->calculService->calculer($periodeId, $entiteId, 'annuel', null);
 
         if (!$result['success'] || empty($result['data']['lignes'])) {
@@ -122,7 +122,7 @@ class BudgetAlertService
         $sectionRubriques = [];
 
         foreach ($lignes as $ligne) {
-            // ✅ Nouvelle section
+            //  Nouvelle section
             if ($ligne['type'] === 'section') {
                 if ($sectionCourante !== null && !empty($sectionRubriques)) {
                     $sectionsStats[] = [
@@ -141,10 +141,10 @@ class BudgetAlertService
                 continue;
             }
 
-            // ✅ Ignorer les parents (déjà comptés via enfants)
+            //  Ignorer les parents (déjà comptés via enfants)
             if ($ligne['type'] === 'parent') continue;
 
-            // ✅ LIRE les montants DÉJÀ CALCULÉS par BudgetCalculService
+            //  LIRE les montants DÉJÀ CALCULÉS par BudgetCalculService
             //    NE PAS RECALCULER à partir des écritures
             $totalPrevu = abs($ligne['total']['prevision'] ?? 0);
             $totalRealise = abs($ligne['total']['realisation'] ?? 0);
@@ -153,7 +153,7 @@ class BudgetAlertService
                 ? round(($totalRealise / $totalPrevu) * 100, 1)
                 : ($totalRealise > 0 ? 100 : 0);
 
-            // ✅ Ventilation charges / revenus
+            //  Ventilation charges / revenus
             if ($sectionType === 'revenu') {
                 $totalRevenusPrevu += $totalPrevu;
                 $totalRevenusRealise += $totalRealise;
@@ -179,7 +179,7 @@ class BudgetAlertService
             $sectionPrevuTotal += $totalPrevu;
         }
 
-        // ✅ Sauvegarder la dernière section
+        //  Sauvegarder la dernière section
         if ($sectionCourante !== null && !empty($sectionRubriques)) {
             $sectionsStats[] = [
                 'libelle' => $sectionCourante,
@@ -303,7 +303,7 @@ class BudgetAlertService
     // =========================================================================
 
     /**
-     * ✅ Top 5 rubriques
+     *  Top 5 rubriques
      *    Utilise uniquement `realise` déjà calculé
      */
     private function getTop5($rubriquesStats, $sectionsStats): array
@@ -316,7 +316,7 @@ class BudgetAlertService
     }
 
     /**
-     * ✅ KPI Cards
+     *  KPI Cards
      *    Utilise uniquement les totaux déjà calculés
      */
     private function getKpiCards($totalChargesPrevu, $totalChargesRealise, $totalRevenusPrevu, $totalRevenusRealise, $moisActuel): array
@@ -338,7 +338,7 @@ class BudgetAlertService
                 'realise' => round($totalChargesRealise, 4),
                 'pourcentage' => $tauxCharges,
                 'couleur' => $tauxCharges < 90 ? 'green' : ($tauxCharges > 100 ? 'red' : 'orange'),
-                'icone' => $tauxCharges < 90 ? '✅' : ($tauxCharges > 100 ? '🔴' : '🟡'),
+                'icone' => $tauxCharges < 90 ? '' : ($tauxCharges > 100 ? '🔴' : '🟡'),
             ],
             'revenus' => [
                 'label' => 'Taux Revenus',
@@ -346,7 +346,7 @@ class BudgetAlertService
                 'realise' => round($totalRevenusRealise, 4),
                 'pourcentage' => $tauxRevenus,
                 'couleur' => $tauxRevenus < 80 ? 'red' : ($tauxRevenus >= 100 ? 'green' : 'orange'),
-                'icone' => $tauxRevenus < 80 ? '🔴' : ($tauxRevenus >= 100 ? '✅' : '🟡'),
+                'icone' => $tauxRevenus < 80 ? '🔴' : ($tauxRevenus >= 100 ? '' : '🟡'),
             ],
             'temporel' => [
                 'label' => 'Exécution Temporelle',
@@ -355,13 +355,13 @@ class BudgetAlertService
                 'pourcentage' => $tauxTemporel,
                 'message' => $tauxCharges > $tauxTemporel
                     ? '⚠️ Dépenses plus rapides que le temps'
-                    : '✅ Rythme normal',
+                    : ' Rythme normal',
             ],
         ];
     }
 
     /**
-     * ✅ Alertes
+     *  Alertes
      *    Utilise uniquement `prevu` et `realise` déjà calculés
      */
     private function getAlertes($rubriquesStats): array
@@ -450,7 +450,7 @@ class BudgetAlertService
     }
 
     /**
-     * ✅ Résultat net
+     *  Résultat net
      *    Utilise uniquement les totaux déjà calculés
      */
     private function getResultatNet($totalRevenusRealise, $totalChargesRealise): array
@@ -466,7 +466,7 @@ class BudgetAlertService
     }
 
     /**
-     * ✅ Écarts favorables / défavorables
+     *  Écarts favorables / défavorables
      *    Utilise uniquement `ecart` déjà calculé
      */
     private function getEcarts($rubriquesStats): array
@@ -506,7 +506,7 @@ class BudgetAlertService
     }
 
     /**
-     * ✅ Évolution mensuelle cumulée
+     *  Évolution mensuelle cumulée
      *    Utilise UNIQUEMENT les tableaux `previsions[m]` et `realisations[m]`
      *    déjà calculés par BudgetCalculService
      */
@@ -521,10 +521,10 @@ class BudgetAlertService
             $realiseMois = 0.0;
 
             foreach ($lignes as $ligne) {
-                // ✅ Seuls les enfants (déjà sommés dans le calculService)
+                //  Seuls les enfants (déjà sommés dans le calculService)
                 if ($ligne['type'] !== 'enfant') continue;
 
-                // ✅ LIRE les montants déjà calculés
+                //  LIRE les montants déjà calculés
                 $prevuMois += abs($ligne['previsions'][$m] ?? 0);
                 $realiseMois += abs($ligne['realisations'][$m] ?? 0);
             }
@@ -546,7 +546,7 @@ class BudgetAlertService
     }
 
     /**
-     * ✅ Résumé global
+     *  Résumé global
      *    Utilise uniquement les totaux déjà calculés
      */
     private function getResume($rubriquesStats, $sectionsStats): array

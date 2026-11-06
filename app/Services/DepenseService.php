@@ -72,7 +72,7 @@ class DepenseService
         $totalJourUsd = Depense::where('succursale_id', $succursaleId)
             ->whereDate('created_at', today())
             ->whereIn('statut', ['VALIDE', 'EN_ATTENTE'])
-            ->sum('montant_usd'); // ✅ utilisation de la colonne stockée
+            ->sum('montant_usd'); //  utilisation de la colonne stockée
 
         if (($totalJourUsd + $montantUsd) > $plafondJournalier) {
             throw new \Exception("Le total des dépenses du jour ({$totalJourUsd} USD) dépasse le plafond journalier de $plafondJournalier USD avec cette nouvelle dépense.");

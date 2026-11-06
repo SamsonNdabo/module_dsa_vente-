@@ -422,7 +422,7 @@ class FluxTresorerieController extends Controller
     }
 
     /**
-     * ✅ CALCUL DU FLUX DE TRÉSORERIE - LOGIQUE GRAND LIVRE + BILAN
+     *  CALCUL DU FLUX DE TRÉSORERIE - LOGIQUE GRAND LIVRE + BILAN
      *
      *  PRINCIPE FONDAMENTAL :
      *  ─────────────────────────────────────────────────────────
@@ -448,11 +448,11 @@ class FluxTresorerieController extends Controller
     ): array {
         $sections = FluxTresorerieSection::actives()->ordonnees()->get();
 
-        // ✅ TRÉSORERIE INITIALE : toujours depuis le BILAN (jamais recalculée)
+        //  TRÉSORERIE INITIALE : toujours depuis le BILAN (jamais recalculée)
         $tresorerieInitiale = $this->calculerTresorerieInitialeDepuisBilan($periode, $entiteId, $succursaleId);
 
         // ============================================================
-        // ✅ LOGIQUE GRAND LIVRE : on récupère TOUTES les écritures
+        //  LOGIQUE GRAND LIVRE : on récupère TOUTES les écritures
         //    (sans filtrage par opération de trésorerie)
         // ============================================================
         $ecrituresQuery = EcrituresComptable::where('periode_id', $periode->id)
@@ -479,7 +479,7 @@ class FluxTresorerieController extends Controller
                 continue;
             }
 
-            // ✅ Filtre les écritures dont le compte commence par une des racines
+            //  Filtre les écritures dont le compte commence par une des racines
             $ecrituresSection = $ecritures->filter(function ($e) use ($racines) {
                 $compte = (string) ($e->compte_numero ?? '');
                 if ($compte === '') return false;
@@ -493,7 +493,7 @@ class FluxTresorerieController extends Controller
                 return false;
             });
 
-            // ✅ Somme DIRECTE par compte (comme le Grand Livre)
+            //  Somme DIRECTE par compte (comme le Grand Livre)
             if ($section->type_flux === 'encaissement') {
                 $montantSection = (float) $ecrituresSection->sum('credit');
             } else {
@@ -519,7 +519,7 @@ class FluxTresorerieController extends Controller
         $fluxFinancement    = $this->arrondir($totaux['financement']['net']);
         $variationNette     = $this->arrondir($fluxExploitation + $fluxInvestissement + $fluxFinancement);
 
-        // ✅ Trésorerie finale = trésorerie du BILAN + variation nette
+        //  Trésorerie finale = trésorerie du BILAN + variation nette
         $tresorerieFinale   = $this->arrondir($tresorerieInitiale + $variationNette);
 
         return [
@@ -579,7 +579,7 @@ class FluxTresorerieController extends Controller
     }
 
     /**
-     * ✅ CALCUL DE LA TRÉSORERIE INITIALE - LOGIQUE BILAN
+     *  CALCUL DE LA TRÉSORERIE INITIALE - LOGIQUE BILAN
      *
      *  RÈGLES :
      *  ─────────────────────────────────────────────────────────
@@ -591,7 +591,7 @@ class FluxTresorerieController extends Controller
      *     les écritures de BILAN INITIAL / À-NOUVEAU / OUVERTURE.
      *
      *  ❌ NE JAMAIS recalculer cette valeur à partir des flux.
-     *  ✅ C'est une valeur figée du BILAN.
+     *   C'est une valeur figée du BILAN.
      *  ─────────────────────────────────────────────────────────
      */
     private function calculerTresorerieInitialeDepuisBilan(
@@ -618,7 +618,7 @@ class FluxTresorerieController extends Controller
     }
 
     /**
-     * ✅ CALCUL DU SOLDE DE TRÉSORERIE DEPUIS LE BILAN
+     *  CALCUL DU SOLDE DE TRÉSORERIE DEPUIS LE BILAN
      *
      *  On récupère le solde d'OUVERTURE des comptes 5x en prenant :
      *  ─────────────────────────────────────────────────────────
@@ -627,14 +627,14 @@ class FluxTresorerieController extends Controller
      *     BILAN INITIAL / À-NOUVEAU / OUVERTURE / REPORT
      *
      *  ❌ On exclut les mouvements normaux de la période
-     *  ✅ On garde uniquement les écritures d'ouverture (bilan initial)
+     *   On garde uniquement les écritures d'ouverture (bilan initial)
      *
      *  Exemple avec le bilan initial :
      *    572 Caisse Shop     Débit 10 000,00
      *    101 Capital social  Crédit 10 000,00
      *    Ref: BILAN INITIAL - ... - EXERCICE 2026
      *
-     *  → solde 5x = 10 000,00 ✅
+     *  → solde 5x = 10 000,00 
      *  ─────────────────────────────────────────────────────────
      */
     private function calculerSoldeTresorerieBilan(
@@ -646,7 +646,7 @@ class FluxTresorerieController extends Controller
             ? $periode->date_debut->format('Y-m-d')
             : $periode->date_debut;
 
-        // ✅ Comptes de trésorerie : 51 à 57 (hors 58)
+        //  Comptes de trésorerie : 51 à 57 (hors 58)
         $comptesTresorerie = PlanComptable::where('position_bilan', 'actif')
             ->where('numero', 'REGEXP', '^5[1-7]')
             ->where('numero', 'NOT LIKE', '58%')
@@ -658,7 +658,7 @@ class FluxTresorerieController extends Controller
             $comptesTresorerie = ['51', '52', '53', '54', '55', '56', '57'];
         }
 
-        // ✅ Construit la condition pour matcher les comptes 5x
+        //  Construit la condition pour matcher les comptes 5x
         $matchComptes = function ($q) use ($comptesTresorerie) {
             foreach ($comptesTresorerie as $compte) {
                 $q->orWhere('compte_numero', 'LIKE', $compte . '%');
@@ -666,7 +666,7 @@ class FluxTresorerieController extends Controller
         };
 
         // ============================================================
-        // ✅ CORRECTION PRINCIPALE :
+        //  CORRECTION PRINCIPALE :
         //    On cherche les écritures de trésorerie qui sont :
         //    - AVANT la période
         //    OU
@@ -699,7 +699,7 @@ class FluxTresorerieController extends Controller
         $credit = (float) (clone $query)->sum('credit');
         $solde = $this->arrondir($debit - $credit);
 
-        // ✅ Log de diagnostic
+        //  Log de diagnostic
         Log::info('[FluxTresorerie] Trésorerie initiale calculée', [
             'periode_id'    => $periode->id,
             'date_debut'    => $dateDebut,
@@ -1160,11 +1160,11 @@ class FluxTresorerieController extends Controller
             $sheet->setCellValue("A{$row}", 'VARIATION NETTE DE TRÉSORERIE (A + B + C)')->mergeCells("A{$row}:C{$row}")->setCellValue("D{$row}", round($data['variation_nette'], 4));
             $sheet->getStyle("A{$row}:D{$row}")->applyFromArray($styleTotal); $row++;
 
-            // ✅ TRÉSORERIE INITIALE : valeur FIGÉE du BILAN
+            //  TRÉSORERIE INITIALE : valeur FIGÉE du BILAN
             $sheet->setCellValue("A{$row}", "TRÉSORERIE AU DÉBUT DE L'EXERCICE (BILAN)")->mergeCells("A{$row}:C{$row}")->setCellValue("D{$row}", round($data['tresorerie_initiale'], 4));
             $sheet->getStyle("A{$row}:D{$row}")->applyFromArray($styleSousTotal); $row++;
 
-            // ✅ TRÉSORERIE FINALE = initiale (BILAN) + variation nette
+            //  TRÉSORERIE FINALE = initiale (BILAN) + variation nette
             $sheet->setCellValue("A{$row}", "TRÉSORERIE À LA FIN DE L'EXERCICE")->mergeCells("A{$row}:C{$row}")->setCellValue("D{$row}", round($data['tresorerie_finale'], 4));
             $sheet->getStyle("A{$row}:D{$row}")->applyFromArray($styleTotal);
 

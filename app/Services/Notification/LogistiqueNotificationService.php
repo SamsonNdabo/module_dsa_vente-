@@ -73,7 +73,7 @@ class LogistiqueNotificationService
                     'id' => $demande->responsable_logistique_id
                 ],
                 'type' => 'APPROVISIONNEMENT_VALIDE',
-                'titre' => "✅ Demande approuvée par le supérieur",
+                'titre' => " Demande approuvée par le supérieur",
                 'message' => "Demande #{$demande->reference} - Approbation supérieure accordée par {$user->nom_complet}",
                 'donnees' => [
                     'demande_id' => $demande->id,
@@ -90,7 +90,7 @@ class LogistiqueNotificationService
                     'id' => $demande->demandeur_id
                 ],
                 'type' => 'APPROVISIONNEMENT_VALIDE',
-                'titre' => "✅ Validation logistique finalisée",
+                'titre' => " Validation logistique finalisée",
                 'message' => "Demande #{$demande->reference} - Organisation du transport validée (coût total: {$demande->cout_total} {$devise->code})",
                 'donnees' => [
                     'demande_id' => $demande->id,

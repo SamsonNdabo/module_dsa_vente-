@@ -59,7 +59,7 @@ class OperationsJournal extends Model
                 'taux_tva' => $operation->taux_tva,
             ], 'INFO');
 
-            // 🆕 LOG SYSTÈME + BROADCAST
+            //  LOG SYSTÈME + BROADCAST
             try {
                 // Récupérer les entités si elles sont dans la requête
                 $entitesIds = request()->input('entite_ids', []);
@@ -90,7 +90,7 @@ class OperationsJournal extends Model
                 $operation->logAudit('MODIFICATION_OPERATION_JOURNAL', $operation->getOriginal(), $changed, 'HAUTE');
             }
 
-            // 🆕 LOG SYSTÈME + BROADCAST
+            //  LOG SYSTÈME + BROADCAST
             try {
                 // Vérifier si les entités ont changé
                 $entitesChanged = request()->has('entite_ids');
@@ -119,7 +119,7 @@ class OperationsJournal extends Model
         static::deleted(function ($operation) {
             $operation->logAudit('SUPPRESSION_OPERATION_JOURNAL', $operation->toArray(), null, 'CRITIQUE');
 
-            // 🆕 LOG SYSTÈME + BROADCAST
+            //  LOG SYSTÈME + BROADCAST
             try {
                 $log = SysLogComptable::create([
                     'utilisateur_id' => auth()->id() ?? 1,

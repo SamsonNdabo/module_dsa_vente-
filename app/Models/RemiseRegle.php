@@ -94,7 +94,7 @@ class RemiseRegle extends Model
 
         // Vérifier les conditions JSON - AVEC VÉRIFICATION D'EXISTENCE
         if ($this->conditions && is_array($this->conditions)) {
-            // ✅ Vérifier 'seuil_montant' uniquement s'il existe
+            //  Vérifier 'seuil_montant' uniquement s'il existe
             if (isset($this->conditions['seuil_montant'])) {
                 $montant = $montantTotal ?? 0;
                 if ($montant < $this->conditions['seuil_montant']) {

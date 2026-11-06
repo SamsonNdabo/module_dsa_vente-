@@ -347,7 +347,7 @@ public function verifierDisponibiliteStock(): array
             ->where('produit_id', $ligne->produit_id)
             ->first();
         
-        // ✅ Utilisation de stockDisponible() pour plus de clarté
+        //  Utilisation de stockDisponible() pour plus de clarté
         $disponible = $stock ? $stock->stockDisponible() : 0;
         
         if ($disponible < $ligne->quantite_demandee) {

@@ -14,7 +14,7 @@ use Illuminate\Validation\Rule;
 
 class SuccursaleController extends Controller
 {
-    // ✅ Rôles avec accès total
+    //  Rôles avec accès total
     private const ROLES_FULL_ACCESS = ['SUPER_ADMIN','CHEF_OPERATIONS'];
     private const ROLES_RESPONSABLE = ['CHEF_AGENCE', 'SUPER_ADMIN'];
 
@@ -50,7 +50,7 @@ class SuccursaleController extends Controller
             }
         ]);
     
-        // ✅ AJOUT : Ne pas filtrer sur est_active (garder TOUTES les succursales)
+        //  AJOUT : Ne pas filtrer sur est_active (garder TOUTES les succursales)
         // Le filtre sera appliqué UNIQUEMENT si l'utilisateur le demande explicitement
         if ($request->filled('est_active')) {
             $query->where('est_active', $request->boolean('est_active'));

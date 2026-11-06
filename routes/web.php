@@ -46,3 +46,4 @@ Route::get('/campagnes/{id}/objectifs-mesurables',fn($id) => view('campagnes.obj
 // 🆕 Souscription client
 Route::get('/souscriptions', fn() => view('souscriptions.index'))->name('souscriptions.index');
 Route::get('/stock-dsa', fn() => view('stock_dsa.index'))->name('stock_dsa.index');
+Route::get('/activations-sim', fn() => view('activations_sim.index'))->name('activations_sim.index');

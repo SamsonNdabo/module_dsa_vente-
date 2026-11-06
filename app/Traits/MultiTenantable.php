@@ -15,7 +15,7 @@ trait MultiTenantable
         if (auth()->check()) {
             $user = auth()->user();
             
-            // ✅ Remplacer 'view-all-data' par la vérification du rôle
+            //  Remplacer 'view-all-data' par la vérification du rôle
             $rolesWithFullAccess = ['SUPER_ADMIN', 'ADMIN_SYSTEME', 'AUDITEUR'];
             
             if (!in_array($user->role->code ?? '', $rolesWithFullAccess)) {

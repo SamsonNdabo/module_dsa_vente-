@@ -7,7 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Dsa\StoreAgentDsaRequest;
 use App\Http\Resources\AgentDsaResource;
 use App\Models\AgentDsa;
-use App\Services\AgentDsaService;
+use App\Services\Agent\AgentDsaService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -20,12 +20,25 @@ class AgentDsaController extends Controller
         $this->exiger($request, 'dsa.agents.view');
 
         $agents = AgentDsa::visiblePour($request->user())
-            ->with(['utilisateur:id,email,telephone,nom_utilisateur', 'zone'])
+            ->with([
+                // ✅ nom, prénom, email, téléphone vivent dans Utilisateur
+                'utilisateur:id,nom_complet,email,telephone,nom_utilisateur,photo_profil',
+                'zone:id,code,nom',
+            ])
             ->when($request->filled('statut'), fn ($q) => $q->where('statut', $request->string('statut')))
             ->when($request->filled('zone_id'), fn ($q) => $q->where('zone_id', $request->integer('zone_id')))
             ->when($request->filled('q'), function ($q) use ($request) {
+                // ✅ Recherche sur code agent + champs Utilisateur
                 $t = '%' . $request->string('q') . '%';
-                $q->where(fn ($w) => $w->where('code', 'like', $t)->orWhere('nom', 'like', $t)->orWhere('prenom', 'like', $t));
+                $q->where(function ($w) use ($t) {
+                    $w->where('code', 'like', $t)
+                      ->orWhereHas('utilisateur', function ($u) use ($t) {
+                          $u->where('nom_complet', 'like', $t)
+                            ->orWhere('email', 'like', $t)
+                            ->orWhere('telephone', 'like', $t)
+                            ->orWhere('nom_utilisateur', 'like', $t);
+                      });
+                });
             })
             ->latest('id')
             ->paginate(min($request->integer('per_page', 20), 100));
@@ -37,11 +50,15 @@ class AgentDsaController extends Controller
     {
         $data = $request->validated();
 
+        // ✅ photo → Utilisateur.photo_profil (via le service)
         if ($request->hasFile('photo')) {
             $data['photo_path'] = $request->file('photo')->store('dsa/agents/photos', 'public');
         }
+
+        // ✅ pièce d'identité → reste dans AgentDsa
         if ($request->hasFile('piece_identite_fichier')) {
-            $data['piece_identite_fichier'] = $request->file('piece_identite_fichier')->store('dsa/agents/pieces', 'local');
+            $data['piece_identite_fichier'] = $request->file('piece_identite_fichier')
+                ->store('dsa/agents/pieces', 'local');
         }
 
         $result = $this->service->creer($data, $request->user());
@@ -57,7 +74,13 @@ class AgentDsaController extends Controller
         $this->exiger($request, 'dsa.agents.view');
 
         $agent = AgentDsa::visiblePour($request->user())
-            ->with(['utilisateur', 'zone', 'statutHistoriques', 'affectations'])
+            ->with([
+                'utilisateur',
+                'zone',
+                'superviseur:id,nom_complet,email',
+                'statutHistoriques',
+                'affectations.zone:id,code,nom',
+            ])
             ->findOrFail($id);
 
         return new AgentDsaResource($agent);
@@ -66,10 +89,16 @@ class AgentDsaController extends Controller
     public function update(Request $request, int $id)
     {
         $this->exiger($request, 'dsa.agents.manage');
-        $agent = AgentDsa::visiblePour($request->user())->with('utilisateur')->findOrFail($id);
+
+        $agent = AgentDsa::visiblePour($request->user())
+            ->with('utilisateur')
+            ->findOrFail($id);
+
         $userId = $agent->utilisateur_id;
 
+        // ✅ On valide les champs personnels (Utilisateur) ET les champs métier (AgentDsa)
         $data = $request->validate([
+            // --- Données personnelles → Utilisateur
             'prenom'    => 'sometimes|string|max:100',
             'nom'       => 'sometimes|string|max:100',
             'sexe'      => 'sometimes|in:M,F',
@@ -79,7 +108,19 @@ class AgentDsaController extends Controller
             'province'  => 'sometimes|string|max:100',
             'ville'     => 'sometimes|string|max:100',
             'commune'   => 'nullable|string|max:100',
+            'photo'     => 'sometimes|file|image|max:2048',
+
+            // --- Données métier → AgentDsa
+            'objectifs'              => 'sometimes|nullable|array',
+            'piece_identite_type'    => 'sometimes|nullable|string|max:50',
+            'piece_identite_numero'  => 'sometimes|nullable|string|max:100',
+            'piece_identite_fichier' => 'sometimes|nullable|string|max:255',
+            'date_embauche'          => 'sometimes|date',
         ]);
+
+        if ($request->hasFile('photo')) {
+            $data['photo_path'] = $request->file('photo')->store('dsa/agents/photos', 'public');
+        }
 
         return new AgentDsaResource($this->service->modifier($agent, $data, $request->user()));
     }
@@ -122,19 +163,21 @@ class AgentDsaController extends Controller
     {
         $this->exiger($request, 'dsa.agents.view', allowSuperAdmin: true);
 
+        // ✅ On joint Utilisateur pour récupérer nom_complet (pas de doublon dans AgentDsa)
         $agents = AgentDsa::query()
-            ->select('id', 'code', 'prenom', 'nom', 'statut')
+            ->with('utilisateur:id,nom_complet,nom_utilisateur,email')
+            ->select('id', 'code', 'utilisateur_id', 'statut')
             ->when(
                 $request->boolean('only_actif', true),
                 fn ($q) => $q->where('statut', AgentStatut::ACTIF->value)
             )
-            ->orderBy('nom')
-            ->orderBy('prenom')
+            ->orderBy('code')
             ->get()
-            ->map(fn ($a) => [
+            ->map(fn (AgentDsa $a) => [
                 'id'          => $a->id,
                 'code'        => $a->code,
-                'nom_complet' => trim("{$a->prenom} {$a->nom}"),
+                // ✅ Récupéré depuis Utilisateur
+                'nom_complet' => $a->utilisateur?->nom_complet ?? 'Inconnu',
                 'statut'      => $a->statut instanceof AgentStatut ? $a->statut->value : $a->statut,
             ]);
 

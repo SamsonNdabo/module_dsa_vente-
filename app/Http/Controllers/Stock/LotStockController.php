@@ -8,7 +8,7 @@ use App\Models\ProduitImei;
 use App\Models\StockSuccursale;
 use App\Models\Produit;
 use App\Models\MouvementStock;
-use App\Models\Caisses;                       // ✅ AJOUT
+use App\Models\Caisses;                       //  AJOUT
 use App\Services\EcritureService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -179,11 +179,11 @@ class LotStockController extends Controller
             'succursale' => [
                 'id' => $succursaleId,
             ],
-            // ✅ Pour le dropdown "Produit"
+            //  Pour le dropdown "Produit"
             'produits' => $produits,
-            // ✅ Pour le dropdown "Stock de la succursale"
+            //  Pour le dropdown "Stock de la succursale"
             'stocks' => $stocksList,
-            // ✅ Liste des lots paginés
+            //  Liste des lots paginés
             'data' => $lots,
         ]);
     }
@@ -453,14 +453,14 @@ class LotStockController extends Controller
                 }
     
                 // ========================================================
-                // ✅✅✅ AJOUT : MISE À JOUR DU STOCK GLOBAL
+                //  AJOUT : MISE À JOUR DU STOCK GLOBAL
                 // AVANT le débit caisse et l'écriture comptable
                 // ========================================================
                 $stock->quantite_disponible = $nouvelleQuantite;
                 $stock->save();
     
                 // ========================================================
-                // ✅✅✅ AJOUT #1 : DÉBITER LA CAISSE
+                //  AJOUT #1 : DÉBITER LA CAISSE
                 // Identique à StockSuccursaleController::store()
                 // ========================================================
                 if ($coutUnitaire > 0 && $quantiteAjoutee > 0) {
@@ -473,7 +473,7 @@ class LotStockController extends Controller
                 }
     
                 // ========================================================
-                // ✅✅✅ AJOUT #2 : ÉCRITURES COMPTABLES
+                //  AJOUT #2 : ÉCRITURES COMPTABLES
                 // Identique à StockSuccursaleController::store()
                 // ========================================================
                 // if ($quantiteAjoutee > 0 && $coutUnitaire > 0) {
@@ -577,11 +577,11 @@ class LotStockController extends Controller
     }
 
     // ================================================================
-    // ✅✅✅ MÉTHODES PRIVÉES COPIÉES DEPUIS StockSuccursaleController
+    //  MÉTHODES PRIVÉES COPIÉES DEPUIS StockSuccursaleController
     // ================================================================
 
     /**
-     * ✅ DÉBITER LA CAISSE (diminuer l'argent) pour un achat
+     *  DÉBITER LA CAISSE (diminuer l'argent) pour un achat
      */
     private function debiterCaisse(StockSuccursale $stock, float $montant, $user): void
     {
@@ -599,7 +599,7 @@ class LotStockController extends Controller
             return;
         }
 
-        // ✅ Cast en int
+        //  Cast en int
         $utilisateurId = (int) $user->id;
         $deviseId = (int) ($stock->produit->devise_id ?? 2);
 
@@ -623,7 +623,7 @@ class LotStockController extends Controller
     }
 
     /**
-     * ✅ CRÉER LES ÉCRITURES COMPTABLES POUR LE STOCK
+     *  CRÉER LES ÉCRITURES COMPTABLES POUR LE STOCK
      * (identique à StockSuccursaleController)
      */
     private function creerEcrituresComptablesStock(
@@ -1312,7 +1312,7 @@ class LotStockController extends Controller
                         $lot->id,
                 
                     'quantite' =>
-                        abs($delta),  // ✅ Toujours positif
+                        abs($delta),  //  Toujours positif
                 
                     'cout_unitaire' =>
                         $coutUnitaire,

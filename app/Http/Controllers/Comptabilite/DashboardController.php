@@ -147,7 +147,7 @@ class DashboardController extends Controller
     }
 
     /**
-     * ✅ CLASSIFICATION AVEC DÉTAIL DES COMPTES
+     *  CLASSIFICATION AVEC DÉTAIL DES COMPTES
      */
     private function classifierDepuisBilan(array $bilanData): array
     {
@@ -272,9 +272,9 @@ class DashboardController extends Controller
     /**
      * ═══════════════════════════════════════════════════════════════════
      *  🔥 SYNTHÈSE DES MOUVEMENTS
-     *  ✅ "nb_ecritures" = nombre d'ÉCRITURES DISTINCTES (pas de lignes)
-     *  ✅ "nb_lignes"    = nombre total de lignes (info secondaire)
-     *  ✅ Les totaux débit/crédit restent inchangés (ce sont des sommes)
+     *   "nb_ecritures" = nombre d'ÉCRITURES DISTINCTES (pas de lignes)
+     *   "nb_lignes"    = nombre total de lignes (info secondaire)
+     *   Les totaux débit/crédit restent inchangés (ce sont des sommes)
      * ═══════════════════════════════════════════════════════════════════
      */
     private function getSyntheseMouvements(string $dateDebut, string $dateFin): array
@@ -314,8 +314,8 @@ class DashboardController extends Controller
         return [
             'date_debut'    => $dateDebut,
             'date_fin'      => $dateFin,
-            'nb_ecritures'  => $nbEcritures,                  // ✅ Nouveau : écritures distinctes
-            'nb_lignes'     => (int)($stats->nb_lignes ?? 0), // ✅ Info secondaire : lignes brutes
+            'nb_ecritures'  => $nbEcritures,                  //  Nouveau : écritures distinctes
+            'nb_lignes'     => (int)($stats->nb_lignes ?? 0), //  Info secondaire : lignes brutes
             'total_debit'   => $debit,
             'total_credit'  => $credit,
             'ecart'         => round($debit - $credit, self::DECIMALES),

@@ -12,16 +12,16 @@ class Devise extends Model
 {
     use SoftDeletes;
 
-    // ✅ 1. Nom de la table
+    //  1. Nom de la table
     protected $table = 'devise';
 
-    // ✅ 2. Clé primaire
+    //  2. Clé primaire
     protected $primaryKey = 'id';
 
-    // ✅ 3. Timestamps
+    //  3. Timestamps
     public $timestamps = true;
 
-    // ✅ 4. Colonnes modifiables en masse (selon votre table)
+    //  4. Colonnes modifiables en masse (selon votre table)
     protected $fillable = [
         'code',
         'nom',
@@ -31,12 +31,12 @@ class Devise extends Model
         'statut',
     ];
 
-    // ✅ 5. Colonnes cachées (pour API)
+    //  5. Colonnes cachées (pour API)
     protected $hidden = [
         'deleted_at',
     ];
 
-    // ✅ 6. Casts automatiques
+    //  6. Casts automatiques
     protected $casts = [
         'devise_defaut' => 'boolean',
         'created_at' => 'datetime',
@@ -44,21 +44,21 @@ class Devise extends Model
         'deleted_at' => 'datetime',
     ];
 
-    // ✅ 7. Valeurs par défaut
+    //  7. Valeurs par défaut
     protected $attributes = [
         'devise_defaut' => false,
         'position_symbole' => 'APRES',
         'statut' => 1,  // 1 = ACTIF, 0 = INACTIF
     ];
 
-    // ✅ 8. Constantes pour les statuts
+    //  8. Constantes pour les statuts
     const STATUT_ACTIF = 1;
     const STATUT_INACTIF = 0;
     
     const POSITION_AVANT = 'AVANT';
     const POSITION_APRES = 'APRES';
 
-    // ✅ 9. Relations
+    //  9. Relations
     public function tauxChangesSource()
     {
         return $this->hasMany(TauxChange::class, 'devise_source', 'id');
@@ -78,7 +78,7 @@ class Devise extends Model
         return self::where('code', $code)->firstOrFail()->id;
     }
     
-    // ✅ 10. Scopes (pour faciliter les requêtes)
+    //  10. Scopes (pour faciliter les requêtes)
     public function scopeActif($query)
     {
         return $query->where('statut', self::STATUT_ACTIF);
@@ -94,7 +94,7 @@ class Devise extends Model
         return $query->where('devise_defaut', true);
     }
 
-    // ✅ 11. Accesseurs
+    //  11. Accesseurs
     public function getEstActifAttribute(): bool
     {
         return $this->statut == self::STATUT_ACTIF;
@@ -117,7 +117,7 @@ class Devise extends Model
         return $this->statut == self::STATUT_ACTIF ? 'ACTIF' : 'INACTIF';
     }
 
-    // ✅ 12. Mutateurs (pour formater automatiquement)
+    //  12. Mutateurs (pour formater automatiquement)
     public function setCodeAttribute($value)
     {
         $this->attributes['code'] = strtoupper(trim($value));
@@ -150,7 +150,7 @@ class Devise extends Model
         }
     }
 
-    // ✅ 13. Méthodes de validation (pour le contrôleur)
+    //  13. Méthodes de validation (pour le contrôleur)
     public static function validationRules($id = null)
     {
         $rules = [
@@ -171,7 +171,7 @@ class Devise extends Model
         return $rules;
     }
 
-    // ✅ 14. Méthodes utilitaires
+    //  14. Méthodes utilitaires
     public function estUtiliseeDansTauxChange(): bool
     {
         return DB::table('taux_change')
@@ -195,7 +195,7 @@ class Devise extends Model
         return !$this->devise_defaut && !$this->estUtiliseeDansTauxChange();
     }
 
-    // ✅ 15. Boot method (gestion automatique de la devise par défaut)
+    //  15. Boot method (gestion automatique de la devise par défaut)
     protected static function boot()
     {
         parent::boot();

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Utilisateur;
 
 use App\Http\Controllers\Controller;
 use App\Models\Utilisateur;
+use App\Models\AgentDsa;
 use App\Models\Role;
 use App\Models\Succursale;
 use Illuminate\Http\Request;
@@ -18,12 +19,12 @@ use Illuminate\Support\Facades\Log;
 
 class UtilisateurController extends Controller
 {
-    // ✅ Constantes pour les rôles avec accès total
     private const ROLES_FULL_ACCESS = ['SUPER_ADMIN','AUDITEUR'];
 
-    /**
-     * Liste des utilisateurs avec filtres - OPTIMISÉ
-     */
+    // ============================================================
+    // CRUD UTILISATEURS
+    // ============================================================
+
     public function index(Request $request)
     {
         $user = $request->user();
@@ -33,35 +34,20 @@ class UtilisateurController extends Controller
             return $this->reponseVide();
         }
 
-        // ✅ Construction de la requête avec SELECT limité
         $query = Utilisateur::select([
             'id', 'matricule', 'nom_complet', 'email', 'telephone',
             'nom_utilisateur', 'role_id', 'succursale_id', 'statut',
             'compte_verrouille', 'date_derniere_connexion', 'created_at', 'two_factor_email_enabled'
         ])->with([
-            'role' => function($q) {
-                $q->select('id', 'code', 'nom_role', 'niveau_acces');
-            },
-            'succursale' => function($q) {
-                $q->select('id', 'nom', 'code');
-            }
+            'role' => fn($q) => $q->select('id', 'code', 'nom_role', 'niveau_acces'),
+            'succursale' => fn($q) => $q->select('id', 'nom', 'code'),
         ]);
 
-        // ✅ Application des restrictions de permissions
         $this->applyUserRestrictions($query, $user);
 
-        // ✅ Filtres
-        if ($request->filled('statut')) {
-            $query->where('statut', $request->statut);
-        }
-
-        if ($request->filled('role_id')) {
-            $query->where('role_id', $request->role_id);
-        }
-
-        if ($request->filled('succursale_id')) {
-            $query->where('succursale_id', $request->succursale_id);
-        }
+        if ($request->filled('statut'))        $query->where('statut', $request->statut);
+        if ($request->filled('role_id'))       $query->where('role_id', $request->role_id);
+        if ($request->filled('succursale_id')) $query->where('succursale_id', $request->succursale_id);
 
         if ($request->filled('recherche')) {
             $search = $request->recherche;
@@ -74,26 +60,15 @@ class UtilisateurController extends Controller
             });
         }
 
-        // ✅ Tri optimisé
         $query->orderBy('created_at', 'desc');
-
-        // ✅ Pagination
-        $perPage = $request->get('per_page', 15);
-        $utilisateurs = $query->paginate($perPage);
-
-        // ✅ Statistiques - UNE SEULE REQUÊTE
-        $stats = $this->getFilteredStats($user, $request);
 
         return response()->json([
             'success' => true,
-            'data' => $utilisateurs,
-            'stats' => $stats
+            'data'    => $query->paginate($request->get('per_page', 15)),
+            'stats'   => $this->getFilteredStats($user, $request),
         ]);
     }
 
-    /**
-     * Afficher un utilisateur spécifique - OPTIMISÉ
-     */
     public function show($id)
     {
         $utilisateur = Utilisateur::select([
@@ -104,46 +79,30 @@ class UtilisateurController extends Controller
             'two_factor_authentification', 'two_factor_email_enabled',
             'created_at', 'updated_at'
         ])->with([
-            'role' => function($q) {
-                $q->select('id', 'code', 'nom_role', 'niveau_acces');
-            },
-            'succursale' => function($q) {
-                $q->select('id', 'nom', 'code');
-            },
-            'audits' => function($q) {
-                $q->select('id', 'id_utilisateur', 'type_action', 'table_type', 'created_at')
-                  ->latest()
-                  ->limit(10);
-            }
+            'role' => fn($q) => $q->select('id', 'code', 'nom_role', 'niveau_acces'),
+            'succursale' => fn($q) => $q->select('id', 'nom', 'code'),
+            'audits' => fn($q) => $q->select('id', 'id_utilisateur', 'type_action', 'table_type', 'created_at')
+                                    ->latest()->limit(10),
         ])->findOrFail($id);
 
-        $user = auth()->user();
-
-        // ✅ Vérification d'accès
-        if (!$this->canViewUser($user, $utilisateur)) {
+        if (!$this->canViewUser(auth()->user(), $utilisateur)) {
             return response()->json(['error' => 'Non autorisé à voir cet utilisateur'], 403);
         }
 
-        // ✅ Statistiques - UNE SEULE REQUÊTE
         $stats = [
-            'nombre_connexions' => $utilisateur->audits()
-                ->where('type_action', 'LOGIN')
-                ->count(),
+            'nombre_connexions'  => $utilisateur->audits()->where('type_action', 'LOGIN')->count(),
             'derniere_connexion' => $utilisateur->date_derniere_connexion,
-            'en_ligne' => Cache::has('user-is-online-' . $utilisateur->id),
-            'est_systeme' => $utilisateur->est_systeme ?? false
+            'en_ligne'           => Cache::has('user-is-online-' . $utilisateur->id),
+            'est_systeme'        => $utilisateur->est_systeme ?? false,
         ];
 
         return response()->json([
             'success' => true,
-            'data' => $utilisateur,
-            'stats' => $stats
+            'data'    => $utilisateur,
+            'stats'   => $stats,
         ]);
     }
 
-    /**
-     * Créer un nouvel utilisateur
-     */
     public function store(Request $request)
     {
         $user = auth()->user();
@@ -151,11 +110,10 @@ class UtilisateurController extends Controller
         if (!$user->hasPermission('create-users')) {
             return response()->json([
                 'success' => false,
-                'error' => 'Vous n\'avez pas les droits pour créer des utilisateurs'
+                'error'   => 'Vous n\'avez pas les droits pour créer des utilisateurs',
             ], 403);
         }
 
-        // ✅ Récupération du rôle (PRIORITÉ AU CODE)
         if ($request->filled('role_code')) {
             $roleDemande = Role::where('code', $request->role_code)->first();
         } else {
@@ -163,79 +121,51 @@ class UtilisateurController extends Controller
         }
 
         if (!$roleDemande) {
-            return response()->json([
-                'success' => false,
-                'error' => 'Rôle invalide'
-            ], 400);
+            return response()->json(['success' => false, 'error' => 'Rôle invalide'], 400);
         }
 
-        // ✅ Vérification des restrictions
         $restriction = $this->checkRoleRestrictions($user, $roleDemande, $request);
-        if ($restriction !== true) {
-            return $restriction;
-        }
+        if ($restriction !== true) return $restriction;
 
-        // ✅ Validation
         $validator = $this->validateStore($request);
-        if ($validator !== true) {
-            return $validator;
-        }
+        if ($validator !== true) return $validator;
 
         DB::beginTransaction();
 
         try {
             $utilisateur = $this->createUser($request, $roleDemande, $user);
-
             DB::commit();
 
             return response()->json([
                 'success' => true,
                 'message' => 'Utilisateur créé avec succès',
-                'data' => $utilisateur->load([
-                    'role' => function($q) {
-                        $q->select('id', 'code', 'nom_role');
-                    },
-                    'succursale' => function($q) {
-                        $q->select('id', 'nom', 'code');
-                    }
-                ])
+                'data'    => $utilisateur->load([
+                    'role' => fn($q) => $q->select('id', 'code', 'nom_role'),
+                    'succursale' => fn($q) => $q->select('id', 'nom', 'code'),
+                ]),
             ], 201);
-
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Erreur création utilisateur', [
-                'error' => $e->getMessage(),
-                'user_id' => $user->id
-            ]);
-
+            Log::error('Erreur création utilisateur', ['error' => $e->getMessage(), 'user_id' => $user->id]);
             return response()->json([
                 'success' => false,
-                'error' => 'Erreur lors de la création: ' . $e->getMessage()
+                'error'   => 'Erreur lors de la création: ' . $e->getMessage(),
             ], 500);
         }
     }
 
-    /**
-     * Mettre à jour un utilisateur - OPTIMISÉ
-     */
     public function update(Request $request, $id)
     {
         $utilisateur = Utilisateur::findOrFail($id);
-
         $currentUser = auth()->user();
 
-        // ✅ Vérification des droits
         if (!$currentUser->hasPermission('manage-all-users') && $currentUser->id != $utilisateur->id) {
             return response()->json(['error' => 'Non autorisé'], 403);
         }
 
-        // ✅ Validation
         $validator = $this->validateUpdate($request, $utilisateur);
-        if ($validator !== true) {
-            return $validator;
-        }
+        if ($validator !== true) return $validator;
 
-        // ✅ Vérification des permissions sur le rôle
         if ($request->has('role_id') && $request->role_id != $utilisateur->role_id) {
             if (!$currentUser->hasPermission('change-users-role')) {
                 return response()->json(['error' => 'Non autorisé à modifier le rôle'], 403);
@@ -245,25 +175,21 @@ class UtilisateurController extends Controller
         DB::beginTransaction();
 
         try {
-            // ✅ Gestion du changement de rôle
             if ($request->has('role_id') && $request->role_id != $utilisateur->role_id) {
                 $this->handleRoleChange($utilisateur, $request);
             }
 
-            // ✅ Mise à jour des champs
             $utilisateur->fill($request->only([
                 'nom_complet', 'email', 'telephone', 'role_id',
-                'succursale_id', 'preferences'
+                'succursale_id', 'preferences',
             ]));
 
-            // ✅ Gestion de la photo
             if ($request->hasFile('photo_profil')) {
                 $this->handlePhotoUpload($utilisateur, $request);
             }
 
             $utilisateur->save();
 
-            // ✅ Gestion du changement de succursale pour chef d'agence
             if ($request->has('succursale_id') && $request->succursale_id != $utilisateur->succursale_id) {
                 $this->handleSuccursaleChange($utilisateur, $request);
             }
@@ -273,34 +199,23 @@ class UtilisateurController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Utilisateur mis à jour',
-                'data' => $utilisateur->fresh([
-                    'role' => function($q) {
-                        $q->select('id', 'code', 'nom_role');
-                    },
-                    'succursale' => function($q) {
-                        $q->select('id', 'nom', 'code');
-                    }
-                ])
+                'data'    => $utilisateur->fresh([
+                    'role' => fn($q) => $q->select('id', 'code', 'nom_role'),
+                    'succursale' => fn($q) => $q->select('id', 'nom', 'code'),
+                ]),
             ]);
-
-        }catch (\Throwable $e) {
-
-    Log::error('Erreur update utilisateur', [
-        'message' => $e->getMessage(),
-        'file' => $e->getFile(),
-        'line' => $e->getLine(),
-        'trace' => $e->getTraceAsString(),
-    ]);
-
-    return response()->json([
-        'message' => $e->getMessage(),
-    ], 500);
-}
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('Erreur update utilisateur', [
+                'message' => $e->getMessage(),
+                'file'    => $e->getFile(),
+                'line'    => $e->getLine(),
+                'trace'   => $e->getTraceAsString(),
+            ]);
+            return response()->json(['message' => $e->getMessage()], 500);
+        }
     }
 
-    /**
-     * Supprimer un utilisateur
-     */
     public function destroy($id)
     {
         $utilisateur = Utilisateur::findOrFail($id);
@@ -319,21 +234,15 @@ class UtilisateurController extends Controller
 
         if ($utilisateur->caisses()->where('statut', 'OUVERTE')->exists()) {
             return response()->json([
-                'error' => 'Cet utilisateur a des caisses ouvertes. Fermez-les d\'abord.'
+                'error' => 'Cet utilisateur a des caisses ouvertes. Fermez-les d\'abord.',
             ], 400);
         }
 
         $utilisateur->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Utilisateur supprimé'
-        ]);
+        return response()->json(['success' => true, 'message' => 'Utilisateur supprimé']);
     }
 
-    /**
-     * Suppression multiple
-     */
     public function bulkDestroy(Request $request)
     {
         if (!auth()->user()->hasPermission('manage-all-users')) {
@@ -341,8 +250,8 @@ class UtilisateurController extends Controller
         }
 
         $request->validate([
-            'ids' => 'required|array',
-            'ids.*' => 'exists:utilisateurs,id'
+            'ids'   => 'required|array',
+            'ids.*' => 'exists:utilisateurs,id',
         ]);
 
         $count = 0;
@@ -365,12 +274,12 @@ class UtilisateurController extends Controller
         return response()->json([
             'success' => true,
             'message' => "{$count} utilisateur(s) supprimé(s)",
-            'errors' => $errors
+            'errors'  => $errors,
         ]);
     }
 
     // ============================================================
-    // MÉTHODES D'ACTIVATION/DÉSACTIVATION
+    // ACTIVATION / DÉSACTIVATION
     // ============================================================
 
     public function activate($id)
@@ -381,15 +290,12 @@ class UtilisateurController extends Controller
 
         $utilisateur = Utilisateur::findOrFail($id);
         $utilisateur->update([
-            'statut' => 'ACTIF',
+            'statut'            => 'ACTIF',
             'compte_verrouille' => false,
-            'tentatives_echec' => 0
+            'tentatives_echec'  => 0,
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Utilisateur activé'
-        ]);
+        return response()->json(['success' => true, 'message' => 'Utilisateur activé']);
     }
 
     public function deactivate($id)
@@ -407,14 +313,11 @@ class UtilisateurController extends Controller
         $utilisateur->update(['statut' => 'INACTIF']);
         $utilisateur->deconnecterToutesSessions(false);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Utilisateur désactivé'
-        ]);
+        return response()->json(['success' => true, 'message' => 'Utilisateur désactivé']);
     }
 
     // ============================================================
-    // MÉTHODES DE GESTION DES MOTS DE PASSE ET RÔLES
+    // MOTS DE PASSE / RÔLES
     // ============================================================
 
     public function resetPassword(Request $request, $id)
@@ -424,17 +327,14 @@ class UtilisateurController extends Controller
         }
 
         $request->validate([
-            'nouveau_mot_de_passe' => 'required|string|min:8|confirmed'
+            'nouveau_mot_de_passe' => 'required|string|min:8|confirmed',
         ]);
 
         $utilisateur = Utilisateur::findOrFail($id);
         $utilisateur->setMotDePasse($request->nouveau_mot_de_passe);
         $utilisateur->deconnecterToutesSessions(false);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Mot de passe réinitialisé'
-        ]);
+        return response()->json(['success' => true, 'message' => 'Mot de passe réinitialisé']);
     }
 
     public function assignRole(Request $request, $id)
@@ -443,13 +343,9 @@ class UtilisateurController extends Controller
             return response()->json(['error' => 'Non autorisé à gérer les rôles'], 403);
         }
 
-        $request->validate([
-            'role_id' => 'required|exists:roles,id'
-        ]);
+        $request->validate(['role_id' => 'required|exists:roles,id']);
 
         $utilisateur = Utilisateur::findOrFail($id);
-
-        // Vérifier si le nouveau rôle est valide pour cette succursale
         $this->validateRoleAssignment($utilisateur, $request->role_id);
 
         $utilisateur->role_id = $request->role_id;
@@ -458,9 +354,7 @@ class UtilisateurController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Rôle assigné',
-            'data' => $utilisateur->fresh(['role' => function($q) {
-                $q->select('id', 'code', 'nom_role');
-            }])
+            'data'    => $utilisateur->fresh(['role' => fn($q) => $q->select('id', 'code', 'nom_role')]),
         ]);
     }
 
@@ -482,7 +376,6 @@ class UtilisateurController extends Controller
 
         $ancienRole = $utilisateur->role->nom_role ?? 'Inconnu';
 
-        // Si chef d'agence, retirer de la succursale
         if ($utilisateur->role->code === 'CHEF_AGENCE') {
             Succursale::where('responsable_id', $utilisateur->id)->update(['responsable_id' => null]);
         }
@@ -491,29 +384,27 @@ class UtilisateurController extends Controller
         $utilisateur->save();
 
         Log::info('Rôle retiré', [
-            'user_id' => $utilisateur->id,
+            'user_id'     => $utilisateur->id,
             'ancien_role' => $ancienRole,
-            'par' => auth()->user()->id
+            'par'         => auth()->user()->id,
         ]);
 
         return response()->json([
             'success' => true,
             'message' => 'Rôle retiré avec succès',
-            'data' => $utilisateur->fresh()
+            'data'    => $utilisateur->fresh(),
         ]);
     }
 
     // ============================================================
-    // MÉTHODES D'AUDIT ET STATISTIQUES
+    // AUDIT / STATISTIQUES
     // ============================================================
 
     public function audit($id, Request $request)
     {
         $utilisateur = Utilisateur::findOrFail($id);
 
-        $user = auth()->user();
-
-        if (!$this->canViewUser($user, $utilisateur)) {
+        if (!$this->canViewUser(auth()->user(), $utilisateur)) {
             return response()->json(['error' => 'Non autorisé'], 403);
         }
 
@@ -522,17 +413,13 @@ class UtilisateurController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate($request->get('per_page', 15));
 
-        return response()->json([
-            'success' => true,
-            'data' => $audits
-        ]);
+        return response()->json(['success' => true, 'data' => $audits]);
     }
 
     public function statistiques(Request $request)
     {
         $user = auth()->user();
         $query = Utilisateur::query();
-
         $this->applyUserRestrictions($query, $user);
 
         if ($request->has('succursale_id')) {
@@ -546,9 +433,9 @@ class UtilisateurController extends Controller
                 ->groupBy('role_id')
                 ->get()
                 ->map(fn($item) => [
-                    'role' => $item->role?->nom_role,
-                    'code' => $item->role?->code,
-                    'total' => $item->total
+                    'role'  => $item->role?->nom_role,
+                    'code'  => $item->role?->code,
+                    'total' => $item->total,
                 ]),
             'par_succursale' => (clone $query)->select('succursale_id', DB::raw('count(*) as total'))
                 ->with('succursale:id,nom,code')
@@ -556,7 +443,7 @@ class UtilisateurController extends Controller
                 ->get()
                 ->map(fn($item) => [
                     'succursale' => $item->succursale?->nom,
-                    'total' => $item->total
+                    'total'      => $item->total,
                 ]),
             'evolution' => (clone $query)->select(
                 DB::raw('DATE(created_at) as date'),
@@ -565,40 +452,27 @@ class UtilisateurController extends Controller
                 ->where('created_at', '>=', now()->subDays(30))
                 ->groupBy('date')
                 ->orderBy('date')
-                ->get()
+                ->get(),
         ];
 
-        return response()->json([
-            'success' => true,
-            'data' => $stats
-        ]);
+        return response()->json(['success' => true, 'data' => $stats]);
     }
 
     // ============================================================
-    // MÉTHODES D'EXPORT
+    // EXPORT
     // ============================================================
 
     public function export(Request $request)
     {
         $user = auth()->user();
         $query = Utilisateur::with(['role:id,nom_role,code', 'succursale:id,nom,code']);
-
         $this->applyUserRestrictions($query, $user);
 
-        if ($request->has('role_id')) {
-            $query->where('role_id', $request->role_id);
-        }
+        if ($request->has('role_id'))       $query->where('role_id', $request->role_id);
+        if ($request->has('succursale_id')) $query->where('succursale_id', $request->succursale_id);
+        if ($request->has('statut'))        $query->where('statut', $request->statut);
 
-        if ($request->has('succursale_id')) {
-            $query->where('succursale_id', $request->succursale_id);
-        }
-
-        if ($request->has('statut')) {
-            $query->where('statut', $request->statut);
-        }
-
-        $utilisateurs = $query->get();
-        $csv = $this->genererCSV($utilisateurs);
+        $csv = $this->genererCSV($query->get());
 
         return response($csv)
             ->header('Content-Type', 'text/csv')
@@ -606,44 +480,174 @@ class UtilisateurController extends Controller
     }
 
     // ============================================================
+    // 2FA
+    // ============================================================
+
+    public function enableEmail2fa(Request $request, $userId)
+    {
+        $admin = auth()->user();
+
+        if (!$admin || !$admin->hasRole('SUPER_ADMIN')) {
+            return response()->json(['success' => false, 'error' => 'Accès refusé'], 403);
+        }
+
+        $user = Utilisateur::findOrFail($userId);
+
+        if ($user->two_factor_email_enabled) {
+            return response()->json(['success' => false, 'error' => '2FA déjà activé'], 400);
+        }
+
+        $user->activer2FAEmail();
+
+        return response()->json([
+            'success' => true,
+            'message' => '2FA activé avec succès pour l’utilisateur',
+        ]);
+    }
+
+    public function disableEmail2fa(Request $request, $userId)
+    {
+        $admin = auth()->user();
+
+        if (!$admin || !$admin->hasRole('SUPER_ADMIN')) {
+            return response()->json(['success' => false, 'error' => 'Accès refusé'], 403);
+        }
+
+        $user = Utilisateur::findOrFail($userId);
+        $user->desactiver2FAEmail();
+
+        return response()->json([
+            'success' => true,
+            'message' => '2FA désactivé avec succès pour l’utilisateur',
+        ]);
+    }
+
+    // ============================================================
+    // AGENTS DSA — table agents_dsa
+    // ============================================================
+    
+    public function agents(Request $request)
+    {
+        $query = AgentDsa::query()
+            ->select([
+                'id',
+                'code',
+                'utilisateur_id',
+                'succursale_id',
+                'zone_id',
+                'superviseur_id',
+                'telephone',
+                'adresse',
+                'date_embauche',
+                'statut',
+            ])
+            ->with([
+                'utilisateur:id,nom_complet,email,telephone,photo_profil',
+                'succursale:id,nom,code',
+                'zone:id,nom,code',
+                'superviseur:id,nom_complet,nom_utilisateur,email,telephone', // ✅ La relation pointe désormais directement sur Utilisateur
+            ]);
+
+        if ($request->boolean('actifs_only', true)) {
+            $query->where('statut', 'ACTIF');
+        } elseif ($request->filled('statut')) {
+            $query->where('statut', $request->statut);
+        }
+
+        if ($request->filled('zone_id')) {
+            $query->where('zone_id', $request->zone_id);
+        }
+
+        if ($request->filled('superviseur_id')) {
+            $query->where('superviseur_id', $request->superviseur_id);
+        }
+
+        if ($request->filled('succursale_id')) {
+            $query->where('succursale_id', $request->succursale_id);
+        }
+
+        if ($request->filled('recherche')) {
+            $search = $request->recherche;
+            $query->where(function ($q) use ($search) {
+                $q->where('code', 'like', "%{$search}%")
+                  ->orWhere('telephone', 'like', "%{$search}%")
+                  ->orWhereHas('utilisateur', function ($qu) use ($search) {
+                      $qu->where('nom_complet', 'like', "%{$search}%")
+                         ->orWhere('email', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        $agents = $query->orderBy('code')->get();
+
+        $data = $agents->map(fn ($a) => [
+            'id'               => $a->id,
+            'id_agent'         => $a->id,
+            'code'             => $a->code,
+            'utilisateur_id'   => $a->utilisateur_id,
+            'nom_complet'      => $a->utilisateur?->nom_complet,
+            'email'            => $a->utilisateur?->email,
+            'telephone'        => $a->telephone ?? $a->utilisateur?->telephone,
+            'photo_profil'     => $a->utilisateur?->photo_profil,
+            'succursale_id'    => $a->succursale_id,
+            'succursale'       => $a->succursale ? [
+                'id'   => $a->succursale->id,
+                'nom'  => $a->succursale->nom,
+                'code' => $a->succursale->code,
+            ] : null,
+            'zone_id'          => $a->zone_id,
+            'id_zone'          => $a->zone_id,
+            'zone'             => $a->zone ? [
+                'id'   => $a->zone->id,
+                'nom'  => $a->zone->nom,
+                'code' => $a->zone->code,
+            ] : null,
+            'superviseur_id'   => $a->superviseur_id,
+            'superviseur'      => $a->superviseur ? [
+                'id'             => $a->superviseur->id,
+                'nom_complet'    => $a->superviseur->nom_complet,
+                'nom_utilisateur'=> $a->superviseur->nom_utilisateur,
+                'telephone'      => $a->superviseur->telephone,
+            ] : null,
+            'adresse'          => $a->adresse,
+            'date_embauche'    => $a->date_embauche?->format('Y-m-d'),
+            'statut'           => $a->statut,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data'    => $data,
+        ]);
+    }
+
+    // ============================================================
     // MÉTHODES PRIVÉES
     // ============================================================
 
-     /**
-     * Applique les restrictions de permissions sur une requête
-     */
     private function applyUserRestrictions($query, Utilisateur $user): void
     {
-        // SUPER ADMIN : accès total
         if ($user->isSuperAdmin()) {
             return;
         }
-    
-        // Si l'utilisateur n'est rattaché à aucune succursale
+
         if (empty($user->succursale_id)) {
             $query->where('id', $user->id);
             return;
         }
-    
-        // Chef d'agence
+
         if ($user->isChefAgence()) {
             $query->where('succursale_id', $user->succursale_id);
             return;
         }
-    
-        // Permission de consultation des utilisateurs
+
         if ($user->hasPermission('view-users')) {
             $query->where('succursale_id', $user->succursale_id);
             return;
         }
-    
-        // Aucun droit : uniquement lui-même
+
         $query->where('id', $user->id);
     }
 
-    /**
-     * Vérifie si un utilisateur peut voir un autre utilisateur
-     */
     private function canViewUser($user, $target): bool
     {
         if (in_array($user->role?->code, self::ROLES_FULL_ACCESS) ||
@@ -659,27 +663,14 @@ class UtilisateurController extends Controller
         return $user->id == $target->id;
     }
 
-    /**
-     * Récupère les statistiques filtrées - OPTIMISÉ
-     */
     private function getFilteredStats($user, $request): array
     {
         $query = Utilisateur::query();
-
         $this->applyUserRestrictions($query, $user);
 
-        // ✅ Appliquer les mêmes filtres que la liste
-        if ($request->filled('statut')) {
-            $query->where('statut', $request->statut);
-        }
-
-        if ($request->filled('role_id')) {
-            $query->where('role_id', $request->role_id);
-        }
-
-        if ($request->filled('succursale_id')) {
-            $query->where('succursale_id', $request->succursale_id);
-        }
+        if ($request->filled('statut'))        $query->where('statut', $request->statut);
+        if ($request->filled('role_id'))       $query->where('role_id', $request->role_id);
+        if ($request->filled('succursale_id')) $query->where('succursale_id', $request->succursale_id);
 
         if ($request->filled('recherche')) {
             $search = $request->recherche;
@@ -690,7 +681,6 @@ class UtilisateurController extends Controller
             });
         }
 
-        // ✅ Statistiques en UNE SEULE REQUÊTE groupée
         $stats = $query->selectRaw("
             COUNT(*) as total,
             SUM(CASE WHEN statut = 'ACTIF' THEN 1 ELSE 0 END) as actifs,
@@ -698,41 +688,34 @@ class UtilisateurController extends Controller
             SUM(CASE WHEN compte_verrouille = 1 THEN 1 ELSE 0 END) as verrouilles
         ")->first();
 
-        // ✅ Utilisateurs en ligne - requête optimisée
         $onlineCount = Cache::remember('users_online_count_' . md5(json_encode($request->all())), 60, function() use ($query) {
-            $users = $query->select('id')->get();
             $count = 0;
-            foreach ($users as $u) {
-                if (Cache::has('user-is-online-' . $u->id)) {
-                    $count++;
-                }
+            foreach ($query->select('id')->get() as $u) {
+                if (Cache::has('user-is-online-' . $u->id)) $count++;
             }
             return $count;
         });
 
         return [
-            'total' => (int) $stats->total,
-            'actifs' => (int) $stats->actifs,
-            'inactifs' => (int) $stats->inactifs,
+            'total'       => (int) $stats->total,
+            'actifs'      => (int) $stats->actifs,
+            'inactifs'    => (int) $stats->inactifs,
             'verrouilles' => (int) $stats->verrouilles,
-            'en_ligne' => $onlineCount
+            'en_ligne'    => $onlineCount,
         ];
     }
 
-    /**
-     * Valide la création d'un utilisateur
-     */
     private function validateStore($request)
     {
         $validator = validator($request->all(), [
-            'nom_complet' => 'required|string|max:100',
-            'email' => 'required|email|unique:utilisateurs,email',
-            'telephone' => 'required|string|max:20',
-            'succursale_id' => 'required|exists:succursales,id',
-            'nom_utilisateur' => 'required|string|unique:utilisateurs,nom_utilisateur',
-            'mot_de_passe' => 'required|string|min:8|confirmed',
-            'photo_profil' => 'nullable|image|max:2048',
-            'date_expiration_mdp' => 'nullable|date'
+            'nom_complet'         => 'required|string|max:100',
+            'email'               => 'required|email|unique:utilisateurs,email',
+            'telephone'           => 'required|string|max:20',
+            'succursale_id'       => 'required|exists:succursales,id',
+            'nom_utilisateur'     => 'required|string|unique:utilisateurs,nom_utilisateur',
+            'mot_de_passe'        => 'required|string|min:8|confirmed',
+            'photo_profil'        => 'nullable|image|max:2048',
+            'date_expiration_mdp' => 'nullable|date',
         ]);
 
         if ($validator->fails()) {
@@ -742,19 +725,16 @@ class UtilisateurController extends Controller
         return true;
     }
 
-    /**
-     * Valide la mise à jour d'un utilisateur
-     */
     private function validateUpdate($request, $utilisateur)
     {
         $validator = validator($request->all(), [
-            'nom_complet' => 'sometimes|string|max:100',
-            'email' => ['sometimes', 'email', Rule::unique('utilisateurs')->ignore($utilisateur->id)],
-            'telephone' => 'sometimes|string|max:20',
-            'role_id' => 'sometimes|exists:roles,id',
+            'nom_complet'   => 'sometimes|string|max:100',
+            'email'         => ['sometimes', 'email', Rule::unique('utilisateurs')->ignore($utilisateur->id)],
+            'telephone'     => 'sometimes|string|max:20',
+            'role_id'       => 'sometimes|exists:roles,id',
             'succursale_id' => 'sometimes|exists:succursales,id',
-            'photo_profil' => 'nullable|image|max:2048',
-            'preferences' => 'nullable|array'
+            'photo_profil'  => 'nullable|image|max:2048',
+            'preferences'   => 'nullable|array',
         ]);
 
         if ($validator->fails()) {
@@ -764,39 +744,34 @@ class UtilisateurController extends Controller
         return true;
     }
 
-    /**
-     * Vérifie les restrictions sur le rôle
-     */
     private function checkRoleRestrictions($user, $role, $request)
     {
         $userRoleCode = $user->role?->code;
 
-        // SUPER ADMIN restriction
         if ($role->code === 'SUPER_ADMIN' && $userRoleCode !== 'SUPER_ADMIN') {
             return response()->json([
                 'success' => false,
-                'error' => 'Seul un SUPER_ADMIN peut créer un autre SUPER_ADMIN'
+                'error'   => 'Seul un SUPER_ADMIN peut créer un autre SUPER_ADMIN',
             ], 403);
         }
 
-        // CHEF AGENCE restrictions
         if ($userRoleCode === 'CHEF_AGENCE') {
             $rolesAutorises = [
                 'UTILISATEUR', 'MAGASINIER', 'CAISSIER',
-                'LIVREUR', 'GESTIONNAIRE_DEPOT', 'GESTIONNAIRE_STOCK'
+                'LIVREUR', 'GESTIONNAIRE_DEPOT', 'GESTIONNAIRE_STOCK',
             ];
 
             if (!in_array($role->code, $rolesAutorises)) {
                 return response()->json([
                     'success' => false,
-                    'error' => 'En tant que CHEF_AGENCE, vous ne pouvez créer que : ' . implode(', ', $rolesAutorises)
+                    'error'   => 'En tant que CHEF_AGENCE, vous ne pouvez créer que : ' . implode(', ', $rolesAutorises),
                 ], 403);
             }
 
             if ($request->succursale_id != $user->succursale_id) {
                 return response()->json([
                     'success' => false,
-                    'error' => 'Vous ne pouvez créer que dans votre succursale'
+                    'error'   => 'Vous ne pouvez créer que dans votre succursale',
                 ], 403);
             }
         }
@@ -804,17 +779,14 @@ class UtilisateurController extends Controller
         return true;
     }
 
-    /**
-     * Crée un utilisateur
-     */
     private function createUser($request, $role, $user)
     {
         $utilisateur = new Utilisateur();
-        $utilisateur->nom_complet = $request->nom_complet;
-        $utilisateur->email = $request->email;
-        $utilisateur->telephone = $request->telephone;
-        $utilisateur->role_id = $role->id;
-        $utilisateur->succursale_id = $request->succursale_id;
+        $utilisateur->nom_complet     = $request->nom_complet;
+        $utilisateur->email           = $request->email;
+        $utilisateur->telephone       = $request->telephone;
+        $utilisateur->role_id         = $role->id;
+        $utilisateur->succursale_id   = $request->succursale_id;
         $utilisateur->nom_utilisateur = $request->nom_utilisateur;
         $utilisateur->setMotDePasse($request->mot_de_passe);
 
@@ -823,13 +795,11 @@ class UtilisateurController extends Controller
         }
 
         if ($request->hasFile('photo_profil')) {
-            $path = $request->file('photo_profil')->store('photos_profil', 'public');
-            $utilisateur->photo_profil = $path;
+            $utilisateur->photo_profil = $request->file('photo_profil')->store('photos_profil', 'public');
         }
 
         $utilisateur->save();
 
-        // Assignation automatique chef agence
         if ($role->code === 'CHEF_AGENCE') {
             $succursale = Succursale::find($request->succursale_id);
             if ($succursale) {
@@ -837,9 +807,9 @@ class UtilisateurController extends Controller
                 $succursale->save();
 
                 Log::info('Chef agence assigné', [
-                    'user_id' => $utilisateur->id,
+                    'user_id'       => $utilisateur->id,
                     'succursale_id' => $succursale->id,
-                    'par' => $user->id
+                    'par'           => $user->id,
                 ]);
             }
         }
@@ -850,145 +820,57 @@ class UtilisateurController extends Controller
     private function handleRoleChange($utilisateur, $request)
     {
         $nouveauRole = Role::find($request->role_id);
-        $ancienRole = Role::find($utilisateur->role_id);
+        $ancienRole  = Role::find($utilisateur->role_id);
 
-        // Si nouveau rôle = CHEF_AGENCE
         if ($nouveauRole && $nouveauRole->code === 'CHEF_AGENCE') {
             $succursaleId = $request->succursale_id ?? $utilisateur->succursale_id;
-            $succursale = Succursale::find($succursaleId);
+            $succursale   = Succursale::find($succursaleId);
 
             if ($succursale && $succursale->responsable_id && $succursale->responsable_id != $utilisateur->id) {
                 throw new \Exception('Cette succursale a déjà un chef d\'agence.');
             }
         }
 
-        // Si ancien rôle = CHEF_AGENCE et nouveau ≠ CHEF_AGENCE
         if ($ancienRole && $ancienRole->code === 'CHEF_AGENCE' &&
             $nouveauRole && $nouveauRole->code !== 'CHEF_AGENCE') {
             Succursale::where('responsable_id', $utilisateur->id)->update(['responsable_id' => null]);
 
             Log::info('Chef d\'agence retiré automatiquement', [
                 'utilisateur_id' => $utilisateur->id,
-                'par' => auth()->user()->id
+                'par'            => auth()->user()->id,
             ]);
         }
     }
-    
-        public function enableEmail2fa(Request $request, $userId)
-{
-    $admin = auth()->user();
 
-    if (!$admin || !$admin->hasRole('SUPER_ADMIN')) {
-        return response()->json([
-            'success' => false,
-            'error' => 'Accès refusé'
-        ], 403);
-    }
-
-    $user = Utilisateur::findOrFail($userId);
-
-    if ($user->two_factor_email_enabled) {
-        return response()->json([
-            'success' => false,
-            'error' => '2FA déjà activé'
-        ], 400);
-    }
-
-    $user->activer2FAEmail();
-
-    return response()->json([
-        'success' => true,
-        'message' => '2FA activé avec succès pour l’utilisateur'
-    ]);
-}
-
-public function disableEmail2fa(Request $request, $userId)
-{
-    $admin = auth()->user();
-
-    if (!$admin || !$admin->hasRole('SUPER_ADMIN')) {
-        return response()->json([
-            'success' => false,
-            'error' => 'Accès refusé'
-        ], 403);
-    }
-
-    $user = Utilisateur::findOrFail($userId);
-    $user->desactiver2FAEmail();
-
-    return response()->json([
-        'success' => true,
-        'message' => '2FA désactivé avec succès pour l’utilisateur'
-    ]);
-}
-
-public function agents(Request $request)
-{
-    $agents = Utilisateur::select([
-        'id', 'nom_complet', 'email', 'telephone',
-        'role_id', 'succursale_id', 'statut', 'photo_profil'
-    ])
-    ->with([
-        'role:id,code,nom_role,niveau_acces',
-        'succursale:id,nom,code',
-    ])
-    ->where('statut', 'ACTIF')
-    ->where('compte_verrouille', false)
-    ->whereNotNull('role_id')
-    ->whereHas('role', function ($q) {
-        // Exclure les rôles purement client
-        $q->whereNotIn('code', ['CLIENT', 'INVITE']);
-    })
-    ->orderBy('nom_complet')
-    ->get();
-
-    return response()->json([
-        'success' => true,
-        'data' => $agents,
-    ]);
-}
-
-    /**
-     * Gère le téléchargement de la photo de profil
-     */
     private function handlePhotoUpload($utilisateur, $request): void
     {
         if ($utilisateur->photo_profil) {
             Storage::disk('public')->delete($utilisateur->photo_profil);
         }
 
-        $path = $request->file('photo_profil')->store('photos_profil', 'public');
-        $utilisateur->photo_profil = $path;
+        $utilisateur->photo_profil = $request->file('photo_profil')->store('photos_profil', 'public');
     }
 
-    /**
-     * Gère le changement de succursale pour un chef d'agence
-     */
     private function handleSuccursaleChange($utilisateur, $request): void
     {
         $role = Role::find($utilisateur->role_id);
         if ($role && $role->code === 'CHEF_AGENCE') {
-            // Retirer de l'ancienne succursale
             Succursale::where('responsable_id', $utilisateur->id)->update(['responsable_id' => null]);
 
-            // Assigner à la nouvelle succursale
             $nouvelleSuccursale = Succursale::find($request->succursale_id);
             if ($nouvelleSuccursale && !$nouvelleSuccursale->responsable_id) {
                 $nouvelleSuccursale->responsable_id = $utilisateur->id;
                 $nouvelleSuccursale->save();
 
                 Log::info('Chef d\'agence réassigné', [
-                    'utilisateur_id' => $utilisateur->id,
+                    'utilisateur_id'      => $utilisateur->id,
                     'nouvelle_succursale' => $request->succursale_id,
-                    'par' => auth()->user()->id
+                    'par'                 => auth()->user()->id,
                 ]);
             }
         }
     }
 
-    /**
-     * Valide l'assignation d'un rôle
-     */
     private function validateRoleAssignment($utilisateur, $roleId): void
     {
         $role = Role::find($roleId);
@@ -1000,34 +882,28 @@ public function agents(Request $request)
         }
     }
 
-    /**
-     * Réponse vide pour les utilisateurs sans rôle
-     */
     private function reponseVide()
     {
         return response()->json([
             'success' => true,
-            'data' => ['data' => [], 'total' => 0],
-            'stats' => [
-                'total' => 0,
-                'actifs' => 0,
-                'inactifs' => 0,
+            'data'    => ['data' => [], 'total' => 0],
+            'stats'   => [
+                'total'       => 0,
+                'actifs'      => 0,
+                'inactifs'    => 0,
                 'verrouilles' => 0,
-                'en_ligne' => 0
-            ]
+                'en_ligne'    => 0,
+            ],
         ]);
     }
 
-    /**
-     * Générer CSV
-     */
     private function genererCSV($utilisateurs)
     {
         $output = fopen('php://temp', 'r+');
 
         fputcsv($output, [
             'Matricule', 'Nom complet', 'Email', 'Téléphone',
-            'Rôle', 'Succursale', 'Statut', 'Date création'
+            'Rôle', 'Succursale', 'Statut', 'Date création',
         ]);
 
         foreach ($utilisateurs as $user) {
@@ -1039,7 +915,7 @@ public function agents(Request $request)
                 $user->role?->nom_role,
                 $user->succursale?->nom,
                 $user->statut,
-                $user->created_at->format('d/m/Y H:i')
+                $user->created_at->format('d/m/Y H:i'),
             ]);
         }
 

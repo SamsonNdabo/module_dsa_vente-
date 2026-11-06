@@ -34,10 +34,10 @@ class CaissesController extends Controller
             
             $filters = $request->only(['statut', 'succursale_id', 'type_caisse', 'inactif', 'categorie', 'parent_id', 'recherche', 'per_page', 'sort', 'direction']);
             
-            // ✅ Si l'utilisateur n'est pas SuperAdmin, ChefOperation ou Auditeur
+            //  Si l'utilisateur n'est pas SuperAdmin, ChefOperation ou Auditeur
             if (!$user->isSuperAdmin() && !$user->isChefOperation() && !$user->isAuditeur()) {
                 
-                // ✅ ChefAgence → Uniquement sa succursale
+                //  ChefAgence → Uniquement sa succursale
                 if ($user->isChefAgence()) {
                     if (!$user->succursale_id) {
                         return response()->json([
@@ -47,7 +47,7 @@ class CaissesController extends Controller
                     }
                     $filters['succursale_id'] = $user->succursale_id;
                 } 
-                // ✅ Autres utilisateurs → Uniquement leur succursale
+                //  Autres utilisateurs → Uniquement leur succursale
                 else {
                     if ($user->succursale_id) {
                         $filters['succursale_id'] = $user->succursale_id;
@@ -55,7 +55,7 @@ class CaissesController extends Controller
                 }
             }
             
-            // ✅ Si l'utilisateur essaie de filtrer sur une autre succursale (tentative de contournement)
+            //  Si l'utilisateur essaie de filtrer sur une autre succursale (tentative de contournement)
             if ($request->filled('succursale_id') && !$user->isSuperAdmin() && !$user->isChefOperation() && !$user->isAuditeur()) {
                 if ($request->succursale_id != ($filters['succursale_id'] ?? null)) {
                     return response()->json([
@@ -97,10 +97,10 @@ class CaissesController extends Controller
             
             $filters = $request->only(['statut', 'succursale_id', 'type_caisse', 'inactif', 'recherche', 'per_page', 'sort', 'direction']);
             
-            // ✅ Si l'utilisateur n'est pas SuperAdmin, ChefOperation ou Auditeur
+            //  Si l'utilisateur n'est pas SuperAdmin, ChefOperation ou Auditeur
             if (!$user->isSuperAdmin() && !$user->isChefOperation() && !$user->isAuditeur()) {
                 
-                // ✅ ChefAgence → Uniquement sa succursale
+                //  ChefAgence → Uniquement sa succursale
                 if ($user->isChefAgence()) {
                     if (!$user->succursale_id) {
                         return response()->json([
@@ -110,7 +110,7 @@ class CaissesController extends Controller
                     }
                     $filters['succursale_id'] = $user->succursale_id;
                 } 
-                // ✅ Autres utilisateurs → Uniquement leur succursale
+                //  Autres utilisateurs → Uniquement leur succursale
                 else {
                     if ($user->succursale_id) {
                         $filters['succursale_id'] = $user->succursale_id;
@@ -118,7 +118,7 @@ class CaissesController extends Controller
                 }
             }
             
-            // ✅ Si l'utilisateur essaie de filtrer sur une autre succursale (tentative de contournement)
+            //  Si l'utilisateur essaie de filtrer sur une autre succursale (tentative de contournement)
             if ($request->filled('succursale_id') && !$user->isSuperAdmin() && !$user->isChefOperation() && !$user->isAuditeur()) {
                 if ($request->succursale_id != ($filters['succursale_id'] ?? null)) {
                     return response()->json([

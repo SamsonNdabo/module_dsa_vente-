@@ -22,7 +22,7 @@ class BudgetCalculService
     // =========================================================================
 
     /**
-     * ✅ Parse les comptes_racines en acceptant TOUS les séparateurs
+     *  Parse les comptes_racines en acceptant TOUS les séparateurs
      */
     private function parserComptesRacines(?string $comptesRacines): array
     {
@@ -39,7 +39,7 @@ class BudgetCalculService
     }
 
     /**
-     * ✅ Détermine si un compte est un DÉBIT (charge/actif) ou CRÉDIT (produit/passif)
+     *  Détermine si un compte est un DÉBIT (charge/actif) ou CRÉDIT (produit/passif)
      */
     private function estCompteDebiteur(?string $positionTfr, ?string $numero): bool
     {
@@ -56,7 +56,7 @@ class BudgetCalculService
     }
 
     /**
-     * ✅ CALCULE le solde d'un compte individuellement (logique Grand Livre)
+     *  CALCULE le solde d'un compte individuellement (logique Grand Livre)
      */
     private function calculerSoldeCompte(float $debit, float $credit, bool $estDebiteur): float
     {
@@ -64,7 +64,7 @@ class BudgetCalculService
     }
 
     /**
-     * ✅ Récupère TOUTES les écritures de la période, indexées par mois et compte
+     *  Récupère TOUTES les écritures de la période, indexées par mois et compte
      *
      *  ⚠️ LOGIQUE GRAND LIVRE :
      *  - INCLUT le BILAN INITIAL, À-NOUVEAU, OUVERTURE (comme le Grand Livre)
@@ -76,7 +76,7 @@ class BudgetCalculService
     private function chargerEcrituresIndexees(int $periodeId, string $dateDebut, string $dateFin, ?int $entiteId = null): array
     {
         $query = EcrituresComptable::where('periode_id', $periodeId)
-            // ✅ EXCLUT UNIQUEMENT les clôtures
+            //  EXCLUT UNIQUEMENT les clôtures
             //    INCLUT : BILAN INITIAL, À-NOUVEAU, OUVERTURE, mouvements
             ->where(function ($q) {
                 $q->where('reference', 'NOT LIKE', 'CLÔTURE%')
@@ -171,7 +171,7 @@ class BudgetCalculService
     }
 
     /**
-     * ✅ CALCUL DU SUIVI BUDGÉTAIRE - LOGIQUE GRAND LIVRE
+     *  CALCUL DU SUIVI BUDGÉTAIRE - LOGIQUE GRAND LIVRE
      *
      *  ─────────────────────────────────────────────────────────
      *  1) Table utilisée : UNIQUEMENT ecritures_comptables
@@ -201,7 +201,7 @@ class BudgetCalculService
         // 2) Plan comptable
         $planComptable = PlanComptable::all(['numero', 'position_tfr'])->keyBy('numero');
 
-        // 3) ✅ Écritures indexées (INCLUT bilan initial + mouvements, EXCLUT clôtures)
+        // 3)  Écritures indexées (INCLUT bilan initial + mouvements, EXCLUT clôtures)
         $mapEcritures = $this->chargerEcrituresIndexees($periode->id, $dateDebut, $dateFin, $entiteId);
 
         // 4) Structure budgétaire
@@ -287,7 +287,7 @@ class BudgetCalculService
             $prev = round(abs((float) ($prevsRubrique?->get($m)?->montant ?? 0)), 4);
             $previsions[$m] = $prev;
 
-            // ✅ Calcul du solde : SOMME des soldes individuels
+            //  Calcul du solde : SOMME des soldes individuels
             $soldeRubrique = 0.0;
 
             if (!empty($racines) && isset($mapEcritures[$m])) {
@@ -313,7 +313,7 @@ class BudgetCalculService
                 }
             }
 
-            // ✅ Valeur absolue pour affichage
+            //  Valeur absolue pour affichage
             $real = round(abs($soldeRubrique), 4);
 
             $realisations[$m] = $real;
@@ -653,10 +653,10 @@ class BudgetCalculService
             $prevision->valider($validateurId);
             $this->mettreAJourSituation($prevision);
 
-            Log::info('✅ Prévision validée', ['prevision_id' => $prevision->id]);
+            Log::info(' Prévision validée', ['prevision_id' => $prevision->id]);
             return [
                 'success' => true,
-                'message' => '✅ Prévision validée.',
+                'message' => ' Prévision validée.',
                 'data'    => $prevision->fresh(),
             ];
         });
@@ -679,11 +679,11 @@ class BudgetCalculService
             }
 
             $nb = $previsions->count();
-            Log::info('✅ Toutes prévisions validées', ['periode_id' => $periodeId, 'nb' => $nb]);
+            Log::info(' Toutes prévisions validées', ['periode_id' => $periodeId, 'nb' => $nb]);
 
             return [
                 'success'     => true,
-                'message'     => "✅ {$nb} prévision(s) validée(s).",
+                'message'     => " {$nb} prévision(s) validée(s).",
                 'nb_validees' => $nb,
             ];
         });
@@ -708,7 +708,7 @@ class BudgetCalculService
     }
 
     /**
-     * ✅ Met à jour la situation (logique Grand Livre, inclut bilan initial)
+     *  Met à jour la situation (logique Grand Livre, inclut bilan initial)
      */
     private function mettreAJourSituation(BudgetPrevision $prevision): void
     {
@@ -722,7 +722,7 @@ class BudgetCalculService
         $realise = 0.0;
 
         if (!empty($racines)) {
-            // ✅ INCLUT tout SAUF les clôtures (comme le Grand Livre)
+            //  INCLUT tout SAUF les clôtures (comme le Grand Livre)
             $ecritures = EcrituresComptable::where('periode_id', $prevision->periode_id)
                 ->where(function ($q) {
                     $q->where('reference', 'NOT LIKE', 'CLÔTURE%')
@@ -737,7 +737,7 @@ class BudgetCalculService
                 })
                 ->get();
 
-            // ✅ Calcul PAR COMPTE individuellement
+            //  Calcul PAR COMPTE individuellement
             foreach ($ecritures as $e) {
                 $compte = trim((string) $e->compte_numero);
                 $infoCompte = $planComptable->get($compte);
@@ -774,7 +774,7 @@ class BudgetCalculService
     // =========================================================================
 
     /**
-     * ✅ Enregistre la situation globale (logique Grand Livre, inclut bilan initial)
+     *  Enregistre la situation globale (logique Grand Livre, inclut bilan initial)
      */
     public function enregistrerSituation(int $periodeId): array
     {
@@ -785,7 +785,7 @@ class BudgetCalculService
 
         $planComptable = PlanComptable::all(['numero', 'position_tfr'])->keyBy('numero');
 
-        // ✅ INCLUT tout SAUF les clôtures
+        //  INCLUT tout SAUF les clôtures
         $mapEcritures = $this->chargerEcrituresIndexees($periodeId, $dateDebut, $dateFin);
 
         $rubriques = BudgetRubrique::actives()->with('section')->get();
@@ -861,7 +861,7 @@ class BudgetCalculService
 
             DB::commit();
 
-            Log::info('✅ Situation budgétaire enregistrée', [
+            Log::info(' Situation budgétaire enregistrée', [
                 'periode_id' => $periodeId,
                 'total'      => $totalEnregistrements,
             ]);
@@ -935,7 +935,7 @@ class BudgetCalculService
 
             return [
                 'success'       => true,
-                'message'       => "✅ {$count} prévision(s) dupliquée(s).",
+                'message'       => " {$count} prévision(s) dupliquée(s).",
                 'nb_dupliquees' => $count,
             ];
         });

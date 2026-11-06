@@ -330,7 +330,7 @@ class CommandeClientController extends Controller
                 $statut .= ' le ' . $commande->updated_at->format('d/m/Y');
             }
 
-            // ✅ Récupérer les IMEI pour chaque ligne
+            //  Récupérer les IMEI pour chaque ligne
             $lignesAvecImei = $commande->lignes->map(function ($ligne) {
                 $imeis = [];
                 if ($ligne->produit->gere_imei && $ligne->metadata) {
@@ -478,7 +478,7 @@ class CommandeClientController extends Controller
             ->values()
             ->all();
 
-            // ✅ Récupérer les IMEI livrés
+            //  Récupérer les IMEI livrés
             $imeisLivres = collect();
             foreach ($commande->lignes as $ligne) {
                 if ($ligne->produit->gere_imei && $ligne->metadata) {
@@ -520,7 +520,7 @@ class CommandeClientController extends Controller
                         ?? 'Aucune adresse renseignée',
                     'historique' => $historique,
                     'derniere_mise_a_jour' => $commande->updated_at?->format('d/m/Y H:i'),
-                    // ✅ Ajout des IMEI livrés
+                    //  Ajout des IMEI livrés
                     'imeis_livres' => $imeisLivres->map(function ($imei) {
                         return [
                             'numero_imei' => $imei->numero_imei,

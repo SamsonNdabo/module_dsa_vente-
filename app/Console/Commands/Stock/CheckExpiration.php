@@ -84,7 +84,7 @@ class CheckExpiration extends Command
 
             // Envoyer des alertes si --force est activé
             if ($force) {
-                $this->info('⚡ Option --force activée : déclenchement des alertes.');
+                $this->info(' Option --force activée : déclenchement des alertes.');
                 // Exemple : dispatcher un job d'alerte pour ces lots
                 // \App\Jobs\CheckExpiringLotsJob::dispatch($days, $succursaleId, true)->onQueue('high');
                 $this->line('(Implémentez ici l\'envoi de notifications si nécessaire)');

@@ -380,7 +380,7 @@ class OperationController extends Controller
                     'id' => $demande->demandeur_id
                 ],
                 'type' => 'APPROVISIONNEMENT_VALIDE',
-                'titre' => $modificationsEffectuees ? "✅ Demande approuvée avec modifications OPS" : "✅ Votre demande a été approuvée par OPS !",
+                'titre' => $modificationsEffectuees ? " Demande approuvée avec modifications OPS" : " Votre demande a été approuvée par OPS !",
                 'message' => "Demande #{$demande->reference} approuvée par {$user->nom_complet}. En attente de validation logistique (choix de la source et du type de demande)." . $messageModification,
                 'donnees' => [
                     'demande_id' => $demande->id,

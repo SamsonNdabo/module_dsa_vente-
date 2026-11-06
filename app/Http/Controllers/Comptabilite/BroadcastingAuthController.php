@@ -41,7 +41,7 @@ class BroadcastingAuthController extends Controller
         // Générer la signature d'authentification Pusher
         $auth = $this->generatePusherAuth($socketId, $channelName);
 
-        Log::info('Broadcasting: ✅ Authentifié', [
+        Log::info('Broadcasting:  Authentifié', [
             'user_id' => $userId,
             'channel' => $channelName,
         ]);

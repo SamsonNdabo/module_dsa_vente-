@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Log;
 class BudgetDetailService
 {
     /**
-     * ✅ Détail complet d'une rubrique pour un mois donné :
+     *  Détail complet d'une rubrique pour un mois donné :
      *    - Liste des écritures affectant les comptes racines
      *    - Solde par compte
      *    - Total réalisé (doit correspondre au Grand Livre)
@@ -55,7 +55,7 @@ class BudgetDetailService
                 ? $periode->date_fin->format('Y-m-d')
                 : $periode->date_fin;
 
-            // ✅ Requête identique à celle du Grand Livre et du calcul budgétaire
+            //  Requête identique à celle du Grand Livre et du calcul budgétaire
             $query = EcrituresComptable::where('periode_id', $periode->id)
                 ->where('reference', 'NOT LIKE', 'CLÔTURE%')
                 ->where('reference', 'NOT LIKE', 'CLOTURE%')
@@ -89,7 +89,7 @@ class BudgetDetailService
                     'operation_journal_id',
                 ]);
 
-            // ✅ Solde par compte + rattachement au plan comptable
+            //  Solde par compte + rattachement au plan comptable
             $planComptable = PlanComptable::all(['numero', 'nom', 'position_tfr', 'position_bilan'])
                 ->keyBy('numero');
 
@@ -124,7 +124,7 @@ class BudgetDetailService
                 $soldesParCompte[$compte]['debit']  += $debit;
                 $soldesParCompte[$compte]['credit'] += $credit;
 
-                // ✅ Formatage de l'écriture
+                //  Formatage de l'écriture
                 $ecrituresFormatees[] = [
                     'id'                => $e->id,
                     'numero_ecriture'   => $e->numero_ecriture,
@@ -143,7 +143,7 @@ class BudgetDetailService
                 ];
             }
 
-            // ✅ Calcul du solde par compte selon la position TFR
+            //  Calcul du solde par compte selon la position TFR
             foreach ($soldesParCompte as $compte => &$info) {
                 $positionTfr = $info['position_tfr'] ?? null;
                 if ($positionTfr === 'produit') {
@@ -159,14 +159,14 @@ class BudgetDetailService
             }
             unset($info);
 
-            // ✅ Total réalisé = somme des soldes positifs de tous les comptes
+            //  Total réalisé = somme des soldes positifs de tous les comptes
             $realise = 0.0;
             foreach ($soldesParCompte as $info) {
                 $realise += $info['solde'];
             }
             $realise = round(abs($realise), 4);
 
-            // ✅ Prévision validée pour ce mois
+            //  Prévision validée pour ce mois
             $prevision = null;
             if ($mois) {
                 $prevModel = BudgetPrevision::where('rubrique_id', $rubriqueId)
@@ -216,7 +216,7 @@ class BudgetDetailService
     }
 
     /**
-     * ✅ Vérification de cohérence : total réalisé doit correspondre au calcul budgétaire
+     *  Vérification de cohérence : total réalisé doit correspondre au calcul budgétaire
      */
     public function verifierCoherence(int $rubriqueId, int $periodeId, ?int $mois = null): array
     {

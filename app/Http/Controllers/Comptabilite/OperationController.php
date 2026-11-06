@@ -36,7 +36,7 @@ class OperationController extends Controller
     // =========================================================================
 
     /**
-     * ✅ ADAPTÉ : Retour JSON structuré pour React
+     *  ADAPTÉ : Retour JSON structuré pour React
      */
     public function index(Request $request)
     {
@@ -215,7 +215,7 @@ class OperationController extends Controller
                 'is_active' => true
             ]);
 
-            Log::info("✅ Type d'opération créé", ['code' => $type->code]);
+            Log::info(" Type d'opération créé", ['code' => $type->code]);
 
             return response()->json([
                 'success' => true,
@@ -243,7 +243,7 @@ class OperationController extends Controller
                 'nom' => $request->nom
             ]);
 
-            Log::info("✅ Type d'opération modifié", ['id' => $id]);
+            Log::info(" Type d'opération modifié", ['id' => $id]);
 
             return response()->json([
                 'success' => true,
@@ -270,7 +270,7 @@ class OperationController extends Controller
 
             $type->delete();
 
-            Log::info("✅ Type d'opération supprimé", [
+            Log::info(" Type d'opération supprimé", [
                 'id' => $id,
                 'operations_supprimees' => $count
             ]);

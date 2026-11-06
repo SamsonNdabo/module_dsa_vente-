@@ -10,10 +10,14 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Gate;
 
+// Import des modèles et observers
+use App\Models\Campagne\CampagneOperation;
+use App\Observers\CampagneOperationObserver;
+
 class AppServiceProvider extends ServiceProvider
 {
     /**
-     * Register any application services.
+     * Enregistrement des services de l'application.
      */
     public function register(): void
     {
@@ -21,28 +25,29 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * Bootstrap any application services.
+     * Démarrage des services de l'application.
      */
     public function boot(): void
     {
-    // S�curisation de l'acc�s � la documentation Scramble via Gate
-    Gate::define('viewApiDocs', function ($user = null) {
-        // En production, on v�rifie l'adresse IP de la requ�te en cours
-        if (app()->isProduction()) {
-            return in_array(request()->ip(), ['196.250.113.208']);
-        }
-        
-        return true;
-    });
+        // Sécurisation de l'accès à la documentation Scramble via Gate
+        Gate::define('viewApiDocs', function ($user = null) {
+            // En production, on vérifie l'adresse IP de la requête en cours
+            if (app()->isProduction()) {
+                return in_array(request()->ip(), ['196.250.113.208']);
+            }
+            
+            return true;
+        });
+
         Schema::defaultStringLength(191);
         
         // ============================================================
-        // ✅ FORCE HTTPS EN PRODUCTION + CONFIG COOKIE CROSS-DOMAIN
+        // FORCE HTTPS EN PRODUCTION + CONFIG COOKIE CROSS-DOMAIN
         // ============================================================
         if (app()->isProduction()) {
             URL::forceScheme('https');
             
-            // 🔥 Configuration des cookies pour le partage cross-domain
+            // Configuration des cookies pour le partage cross-domain
             // NOTE: session.connection reste 'mysql' (base POS) pour les sessions locales
             config([
                 'session.secure' => true,
@@ -70,9 +75,18 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('sensitive', function (Request $request) {
             return Limit::perMinute(10)->by($request->user()?->id ?: $request->ip());
         });
-        // Rate limiter pour le contr�le des expirations de lots FIFO
+
+        // Rate limiter pour le contrôle des expirations de lots FIFO
         RateLimiter::for('expiration', function (Request $request) {
             return Limit::perMinute(1)->by('check-expiring-lots-job');
         });
+
+        // ============================================================
+        // ENREGISTREMENT DES OBSERVERS
+        // ============================================================
+        
+        // Déclenche la mise à jour automatique des stocks d'agents
+        // à chaque création, modification ou suppression d'une opération.
+        CampagneOperation::observe(CampagneOperationObserver::class);
     }
 }

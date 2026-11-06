@@ -49,7 +49,7 @@ class PaiementFournisseurController extends Controller
 
     /**
      * Enregistrer un paiement pour une commande
-     * ✅ Vérifie que la réception a été validée avant paiement
+     *  Vérifie que la réception a été validée avant paiement
      */
     public function store(Request $request)
     {
@@ -70,7 +70,7 @@ class PaiementFournisseurController extends Controller
 
         $commande = CommandeFournisseur::findOrFail($request->commande_id);
 
-        // ✅ VÉRIFICATION CRITIQUE DU CAHIER DES CHARGES
+        //  VÉRIFICATION CRITIQUE DU CAHIER DES CHARGES
         // Étape 6 : Tant que la commande n'est pas validée, le paiement ne peut pas être déclenché
         if (!in_array($commande->statut, ['RECUE', 'RECUE_PARTIELLE', 'VALIDEE'])) {
             return response()->json([
@@ -128,7 +128,7 @@ class PaiementFournisseurController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => $paiement->statut === 'COMPLET' 
-                    ? '✅ Paiement complété avec succès' 
+                    ? ' Paiement complété avec succès' 
                     : '💰 Paiement partiel enregistré',
                 'data' => [
                     'paiement' => $paiement->load('commande.fournisseur'),
@@ -164,7 +164,7 @@ class PaiementFournisseurController extends Controller
 
     /**
      * Historique des paiements d'un fournisseur
-     * ✅ Répond à: "Un historique complet des paiements par fournisseur est conservé"
+     *  Répond à: "Un historique complet des paiements par fournisseur est conservé"
      */
     public function historiqueFournisseur($fournisseurId)
     {
@@ -195,7 +195,7 @@ class PaiementFournisseurController extends Controller
 
     /**
      * Commandes éligibles au paiement (réception validée)
-     * ✅ Affiche les commandes qui peuvent être payées
+     *  Affiche les commandes qui peuvent être payées
      */
     public function commandesEligibles(Request $request)
     {

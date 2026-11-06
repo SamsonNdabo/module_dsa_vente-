@@ -18,17 +18,17 @@ class SuccursaleMiddleware
 
         $user = auth()->user();
 
-        // ✅ Vérification du rôle utilisateur
+        //  Vérification du rôle utilisateur
         if (!$user->role) {
             return $this->erreur('Utilisateur sans rôle défini', 403);
         }
 
-        // ✅ Cas 1: Utilisateur avec succursale
+        //  Cas 1: Utilisateur avec succursale
         if ($user->succursale_id) {
             return $this->traiterAvecSuccursale($user, $request, $next);
         }
 
-        // ✅ Cas 2: Utilisateur sans succursale
+        //  Cas 2: Utilisateur sans succursale
         return $this->traiterSansSuccursale($user, $request, $next);
     }
 
@@ -72,12 +72,12 @@ class SuccursaleMiddleware
 
     private function traiterSansSuccursale($user, $request, $next)
     {
-        // ✅ Rôles autorisés sans succursale
+        //  Rôles autorisés sans succursale
         if (in_array($user->role->code, $this->rolesWithoutSuccursale)) {
             return $next($request);
         }
 
-        // ✅ Permissions spéciales
+        //  Permissions spéciales
         if ($user->hasPermission('view-all-agences')) {
             return $next($request);
         }

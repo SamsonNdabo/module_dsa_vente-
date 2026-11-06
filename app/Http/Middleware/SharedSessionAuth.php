@@ -14,7 +14,7 @@ class SharedSessionAuth
     public function handle(Request $request, Closure $next): Response
     {
         // ============================================================
-        // ✅ EXCEPTION PRIORITAIRE : Ignorer complètement broadcasting/auth
+        //  EXCEPTION PRIORITAIRE : Ignorer complètement broadcasting/auth
         // ============================================================
         if ($request->is('broadcasting/auth')) {
             return $next($request);
@@ -44,7 +44,7 @@ class SharedSessionAuth
         if ($hasStareheSession || $hasLaravelSession) {
             $result = $this->authenticateWithSaasSession($request);
             if ($result) {
-                Log::info('SSO: ✅ Authentifié via session SAAS');
+                Log::info('SSO:  Authentifié via session SAAS');
                 $authenticated = true;
             }
         }
@@ -53,7 +53,7 @@ class SharedSessionAuth
         if (!$authenticated && $hasPosSession) {
             $result = $this->authenticateWithPosSession($request);
             if ($result) {
-                Log::info('SSO: ✅ Authentifié via session POS');
+                Log::info('SSO:  Authentifié via session POS');
                 $authenticated = true;
             }
         }

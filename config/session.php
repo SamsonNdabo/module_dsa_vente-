@@ -4,104 +4,47 @@ use Illuminate\Support\Str;
 
 return [
 
-    /*
-    |--------------------------------------------------------------------------
-    | Default Session Driver
-    |--------------------------------------------------------------------------
-    */
-    'driver' => env('SESSION_DRIVER', 'file'),
+    'driver' => env('SESSION_DRIVER', 'database'),
 
-    /*
-    |--------------------------------------------------------------------------
-    | Session Lifetime
-    |--------------------------------------------------------------------------
-    */
-    'lifetime' => (int) env('SESSION_LIFETIME', 480),
+    'lifetime' => (int) env('SESSION_LIFETIME', 120),
     'expire_on_close' => false,
 
-    /*
-    |--------------------------------------------------------------------------
-    | Session Encryption
-    |--------------------------------------------------------------------------
-    */
-    'encrypt' => env('SESSION_ENCRYPT', false),
+    'encrypt' => false,
 
-    /*
-    |--------------------------------------------------------------------------
-    | Session File Location
-    |--------------------------------------------------------------------------
-    */
     'files' => storage_path('framework/sessions'),
 
-    /*
-    |--------------------------------------------------------------------------
-    | Session Database Connection / Table
-    |--------------------------------------------------------------------------
-    */
     'connection' => env('SESSION_CONNECTION'),
     'table' => env('SESSION_TABLE', 'sessions'),
+
     'store' => env('SESSION_STORE'),
 
-    /*
-    |--------------------------------------------------------------------------
-    | Session Sweeping Lottery
-    |--------------------------------------------------------------------------
-    */
     'lottery' => [2, 100],
 
     /*
-    |--------------------------------------------------------------------------
-    | Session Cookie Name
-    |--------------------------------------------------------------------------
-    | ⚠️ Fallback = laravel_session (pas pos_session)
+    🔥 FIX IMPORTANT :
+    DOIT être IDENTIQUE sur POS + API + SITE PRINCIPAL
     */
-    'cookie' => env('SESSION_COOKIE', 'laravel_session'),
+    'cookie' => env('SESSION_COOKIE', 'pos_session'),
+
+    'path' => '/',
 
     /*
-    |--------------------------------------------------------------------------
-    | Session Cookie Path
-    |--------------------------------------------------------------------------
+    🔥 CRITIQUE :
+    permet partage entre sous-domaines
     */
-    'path' => env('SESSION_PATH', '/'),
+    'domain' => env('SESSION_DOMAIN', '.stareheholding.com'),
 
     /*
-    |--------------------------------------------------------------------------
-    | Session Cookie Domain
-    |--------------------------------------------------------------------------
-    | ⚠️ Fallback = null → Laravel utilisera le domaine courant
-    | Pour un vrai partage cross-subdomain en prod, mettre .stareheholding.com
-    | dans .env (SESSION_DOMAIN), pas en dur ici.
+    🔥 HTTPS obligatoire en production
     */
-    'domain' => env('SESSION_DOMAIN'),
+    'secure' => env('SESSION_SECURE_COOKIE', true),
 
-    /*
-    |--------------------------------------------------------------------------
-    | HTTPS Only Cookies
-    |--------------------------------------------------------------------------
-    | ⚠️ false par défaut → cookie fonctionne en HTTP local
-    | Mettre SESSION_SECURE_COOKIE=true en prod uniquement
-    */
-    'secure' => env('SESSION_SECURE_COOKIE', false),
-
-    /*
-    |--------------------------------------------------------------------------
-    | HTTP Access Only
-    |--------------------------------------------------------------------------
-    */
     'http_only' => true,
 
     /*
-    |--------------------------------------------------------------------------
-    | Same-Site Cookies
-    |--------------------------------------------------------------------------
-    | ⚠️ lax en local HTTP, none + secure=true en prod cross-site
+    🔥 IMPORTANT POUR API + SPA
     */
-    'same_site' => env('SESSION_SAME_SITE', 'lax'),
+    'same_site' => 'none',  //  Doit être 'none', pas 'lax'
 
-    /*
-    |--------------------------------------------------------------------------
-    | Partitioned Cookies
-    |--------------------------------------------------------------------------
-    */
-    'partitioned' => env('SESSION_PARTITIONED_COOKIE', false),
+    'partitioned' => false,
 ];
